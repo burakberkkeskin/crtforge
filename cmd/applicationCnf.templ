@@ -1,0 +1,20 @@
+[ req ]
+default_bits       = 2048
+prompt             = no
+default_md         = sha256
+distinguished_name = dn
+
+[ dn ]
+countryName            = TR
+stateOrProvinceName    = Istanbul
+localityName           = Istanbul
+organizationName       = Safderun
+organizationalUnitName = Safderun Webapp
+commonName             = {{.commonName}}
+emailAddress           = burakberkkeskin@gmail.com
+
+[ v3_ext ]
+subjectAltName = @alt_names
+
+[ alt_names ]
+{{.altNames}}
