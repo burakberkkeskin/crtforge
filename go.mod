@@ -1,4 +1,4 @@
-module crtForge
+module crtforge
 
 go 1.20
 

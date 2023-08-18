@@ -27,42 +27,34 @@ var applicationCnf []byte
 
 // rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
-	Use:   "crtForge",
+	Use:   "crtforge",
 	Short: "Be a local cert authority",
-	Long: `With crtForge, you can create root, intermediate and application ca.
+	Long: `With crtforge, you can create root, intermediate and application ca.
 For example:
-./crtForge --root "Safderun Root"
+./crtforge crtforge crtforge.com app.crtforge.com api.crtforge.com 
 `,
-	Run: rootRun,
+	Args: cobra.MinimumNArgs(2),
+	Run:  rootRun,
 }
 
 func rootRun(cmd *cobra.Command, args []string) {
-	fmt.Println("Hello, crtForge!")
+	appName := args[0]
+	appDomains := args[1:]
 
 	homeDirectory, err := os.UserHomeDir()
 	if err != nil {
-		log.Fatal(err)
+		log.Fatal("home directory couldn't find", err)
 	}
-	configDirectory := homeDirectory + "/.config/crtForge"
+	configDirectory := homeDirectory + "/.config/crtforge"
 	createConfigDir(configDirectory)
 	defaultCADir := createDefaultCADir(configDirectory)
 
-	fmt.Println("Home directory: ", homeDirectory)
-	fmt.Println("Config directory: ", configDirectory)
-
 	defaultCARootCACrt, defaultCARootCACnf, defaultCARootCAkey := createDefaultRootCA(defaultCADir)
-	if defaultCARootCACrt != "" && defaultCARootCAkey != "" {
-		// The variable is used here, but the condition has no impact on the logic
-		fmt.Println("Using the variable:", defaultCARootCACrt)
-	}
+	_ = defaultCARootCAkey
 
 	defaultCAIntermediateCACrt, defaultCAIntermediateCACnf, defaultCAIntermediateCAkey := createDefaultIntermediateCACert(defaultCADir, defaultCARootCACnf)
-	if defaultCAIntermediateCACrt != "" && defaultCAIntermediateCAkey != "" {
-		// The variable is used here, but the condition has no impact on the logic
-		fmt.Println("Using the variable:", defaultCARootCACrt)
-	}
 
-	createDefaultApplicationCrt(defaultCADir, defaultCAIntermediateCACnf, defaultCAIntermediateCACrt, defaultCAIntermediateCAkey, defaultCARootCACrt, "crtForge", "crtforge.com", []string{"crtforge.com", "app.crtforge.com"})
+	createDefaultApplicationCrt(defaultCADir, defaultCAIntermediateCACnf, defaultCAIntermediateCACrt, defaultCAIntermediateCAkey, defaultCARootCACrt, appName, appDomains[0], appDomains)
 }
 
 func createConfigDir(configDir string) {
@@ -88,7 +80,7 @@ func createDefaultRootCA(defaultCADir string) (string, string, string) {
 	// Create rootCA key with openssl
 	defaultCARootCAKeyFile := defaultCARootCADir + "/rootCA.key"
 	if _, err := os.Stat(defaultCARootCAKeyFile); os.IsNotExist(err) {
-		createRootCaKeyCmd := exec.Command("openssl", "genrsa", "-aes256", "-out", defaultCARootCAKeyFile, "4096")
+		createRootCaKeyCmd := exec.Command("openssl", "genrsa", "-out", defaultCARootCAKeyFile, "4096")
 		createRootCaKeyCmd.Dir = defaultCARootCADir
 		err = createRootCaKeyCmd.Run()
 		if err != nil {
@@ -174,7 +166,7 @@ func createDefaultIntermediateCACert(defaultCADir string, defaultCARootCACnf str
 	// Create intermediate key with openssl
 	defaultCAIntermediateCAKeyFile := defaultCAIntermediateCADir + "/intermediateCA.key"
 	if _, err := os.Stat(defaultCAIntermediateCAKeyFile); os.IsNotExist(err) {
-		createIntermediateCaKeyCmd := exec.Command("openssl", "genrsa", "-aes256", "-out", defaultCAIntermediateCAKeyFile, "4096")
+		createIntermediateCaKeyCmd := exec.Command("openssl", "genrsa", "-out", defaultCAIntermediateCAKeyFile, "4096")
 		createIntermediateCaKeyCmd.Dir = defaultCAIntermediateCADir
 		err = createIntermediateCaKeyCmd.Run()
 		if err != nil {
@@ -197,7 +189,7 @@ func createDefaultIntermediateCACert(defaultCADir string, defaultCARootCACnf str
 	defaultCAIntermediateCsrFile := defaultCAIntermediateCADir + "/intermediateCA.csr"
 	if _, err := os.Stat(defaultCAIntermediateCsrFile); os.IsNotExist(err) {
 		createIntermediateCaCsrCmd := exec.Command(
-			"openssl", "req",
+			"openssl", "req", "-nodes",
 			"-config", defaultCAIntermediateCnfFile,
 			"-new", "-sha256",
 			"-keyout", defaultCAIntermediateCAKeyFile,
@@ -209,7 +201,7 @@ func createDefaultIntermediateCACert(defaultCADir string, defaultCARootCACnf str
 		if err != nil {
 			log.Fatal("Error while creating default ca intermediate ca csr: ", err)
 		}
-		fmt.Println("Intermediate CA CSR generated at ", defaultCAIntermediateCnfFile)
+		fmt.Println("Intermediate CA CSR generated at ", defaultCAIntermediateCsrFile)
 	}
 
 	// Create default CA intermediate CA crt file
@@ -372,6 +364,7 @@ func prepareAppCnf(appName string, commonName string, altNames []string) ([]byte
 		return nil, err
 	}
 	vars := make(map[string]interface{})
+	vars["appName"] = appName
 	vars["commonName"] = commonName
 	vars["altNames"] = generateAltNames(altNames)
 
@@ -416,7 +409,7 @@ func init() {
 	// Cobra supports persistent flags, which, if defined here,
 	// will be global for your application.
 
-	// rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default is $HOME/.crtForge.yaml)")
+	// rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default is $HOME/.crtforge.yaml)")
 
 	// Cobra also supports local flags, which will only run
 	// when this action is called directly.
