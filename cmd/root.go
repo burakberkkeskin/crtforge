@@ -278,7 +278,7 @@ func createDefaultApplicationCrt(defaultCADir string, defaultCAIntermediateCaCnf
 	defaultCAApplicationCsrFile := defaultCAApplicationCrtDir + "/" + appName + ".csr"
 	if _, err := os.Stat(defaultCAApplicationCsrFile); os.IsNotExist(err) {
 		createIntermediateCaCsrCmd := exec.Command(
-			"openssl", "req",
+			"openssl", "req", "-new",
 			"-key", defaultCAApplicationKeyFile,
 			"-config", defaultCAApplicationCnfFile,
 			"-out", defaultCAApplicationCsrFile,
