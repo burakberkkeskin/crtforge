@@ -12,6 +12,8 @@ import (
 	"github.com/spf13/cobra"
 )
 
+var caName string
+
 // rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
 	Use:   "crtforge",
@@ -34,7 +36,7 @@ func rootRun(cmd *cobra.Command, args []string) {
 	}
 	configDirectory := homeDirectory + "/.config/crtforge"
 	createConfigDir(configDirectory)
-	defaultCADir := services.CreateCaDir(configDirectory, "default")
+	defaultCADir := services.CreateCaDir(configDirectory, caName)
 
 	defaultCARootCACrt, defaultCARootCACnf, defaultCARootCAkey := services.CreateRootCa(defaultCADir)
 	_ = defaultCARootCAkey
@@ -67,7 +69,7 @@ func init() {
 	// Cobra supports persistent flags, which, if defined here,
 	// will be global for your application.
 
-	// rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default is $HOME/.crtforge.yaml)")
+	rootCmd.Flags().StringVar(&caName, "rootCa", "default", "Set CA Name")
 
 	// Cobra also supports local flags, which will only run
 	// when this action is called directly.

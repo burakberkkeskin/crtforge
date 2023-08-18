@@ -1,15 +1,17 @@
 package services
 
 import (
+	"bytes"
 	_ "embed"
 	"fmt"
+	"html/template"
 	"log"
 	"os"
 	"os/exec"
 )
 
 //go:embed rootCaCnf.tmpl
-var rootCaCnf []byte
+var rootCaCnfTmpl []byte
 
 func CreateRootCa(CaDir string) (string, string, string) {
 	// Create the default root ca folder if not exists:
@@ -35,6 +37,10 @@ func CreateRootCa(CaDir string) (string, string, string) {
 	}
 
 	// Create default CA root CA cnf file
+	rootCaCnf, err := prepareRootCnf(rootCaDir)
+	if err != nil {
+		log.Fatal("Error while creating root cnf file:", err)
+	}
 	rootCaCnfFile := rootCaDir + "/rootCA.cnf"
 	if _, err := os.Stat(rootCaCnfFile); os.IsNotExist(err) {
 		err := os.WriteFile(rootCaCnfFile, rootCaCnf, os.ModePerm)
@@ -96,4 +102,20 @@ func CreateRootCa(CaDir string) (string, string, string) {
 	os.OpenFile(serialFile, os.O_RDONLY|os.O_CREATE, 0600)
 	fmt.Println("Root CA initialized ")
 	return rootCaCrtFile, rootCaCnfFile, rootCaKeyFile
+}
+
+func prepareRootCnf(rootCaDir string) ([]byte, error) {
+	tmpl, err := template.New("rootCaCnf").Parse(string(rootCaCnfTmpl))
+	if err != nil {
+		return nil, err
+	}
+	vars := make(map[string]interface{})
+	vars["dir"] = rootCaDir
+
+	var output bytes.Buffer
+	if err := tmpl.Execute(&output, vars); err != nil {
+		return nil, err
+	}
+
+	return output.Bytes(), nil
 }

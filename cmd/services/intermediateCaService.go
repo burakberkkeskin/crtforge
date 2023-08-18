@@ -1,15 +1,17 @@
 package services
 
 import (
+	"bytes"
 	_ "embed"
 	"fmt"
+	"html/template"
 	"log"
 	"os"
 	"os/exec"
 )
 
 //go:embed intermediateCaCnf.tmpl
-var intermediateCACnf []byte
+var intermediateCACnfTmpl []byte
 
 func CreateIntermediateCa(CaDir string, rootCaCnf string) (string, string, string) {
 	// Create intermediate ca folder
@@ -34,9 +36,13 @@ func CreateIntermediateCa(CaDir string, rootCaCnf string) (string, string, strin
 	}
 
 	// Create intermediate ca cnf file
+	intermediateCaCnf, err := prepareIntermediateCnf(intermediateCaDir)
+	if err != nil {
+		log.Fatal("Error while creating intermediate cnf file:", err)
+	}
 	intermediateCaCnfFile := intermediateCaDir + "/intermediateCA.cnf"
 	if _, err := os.Stat(intermediateCaCnfFile); os.IsNotExist(err) {
-		err := os.WriteFile(intermediateCaCnfFile, intermediateCACnf, os.ModePerm)
+		err := os.WriteFile(intermediateCaCnfFile, intermediateCaCnf, os.ModePerm)
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -85,4 +91,20 @@ func CreateIntermediateCa(CaDir string, rootCaCnf string) (string, string, strin
 
 	fmt.Println("Intermediate CA initialized successfully.")
 	return intermediateCaCrtFile, intermediateCaCnfFile, intermediateCaKeyFile
+}
+
+func prepareIntermediateCnf(intermediateCaDir string) ([]byte, error) {
+	tmpl, err := template.New("intermediateCaCnf").Parse(string(intermediateCACnfTmpl))
+	if err != nil {
+		return nil, err
+	}
+	vars := make(map[string]interface{})
+	vars["dir"] = intermediateCaDir
+
+	var output bytes.Buffer
+	if err := tmpl.Execute(&output, vars); err != nil {
+		return nil, err
+	}
+
+	return output.Bytes(), nil
 }
