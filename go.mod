@@ -1,4 +1,4 @@
-module sslForge
+module crtForge
 
 go 1.20
 
