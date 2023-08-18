@@ -15,7 +15,7 @@ sudo curl -L -o /usr/bin/crtforge https://github.com/safderun/crtForge/releases/
 sudo chmod +x /usr/bin/crtforge
 ```
 
-## Quick Start
+## Quick Start
 
 - You can create the fullchain cert within a second:
 
@@ -54,3 +54,29 @@ total 24
 
 > :information_source: Usage
 > You can use the `fullchain.crt` `myApp.key` in web servers like nginx, apache or mock servers.
+
+## Background
+
+When you run the cli application without `--rootCa` flag, it creates a `default` in $HOME/.config/crtforge.
+
+After that, rootCA and intermediateCA is created under that folder.
+
+And last, your application's cert files are being created under the a folder named your app.
+
+You can create multiple application certs under same rootCA.
+
+## Custom Root CA
+
+If you need a brand new chain, you can create a new rootCA with `--rootCa` flag.
+
+For example:
+
+```bash
+sslforge --rootCa customRootCa myApp api.myapp.com app.myapp.com
+```
+
+After the command returns, a custom root ca named `customRootCa` has been created under `$HOME/.config/crtforge`.
+
+The folder structure is same as default.
+
+You can get the application certificates under `$HOME/.config/crtforge/customRootCa/myApp`
