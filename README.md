@@ -44,6 +44,7 @@ total 24
 ```
 
 > :information_source: Files and meanings
+>
 > You will probably use `fullchain.crt` `myApp.crt` `myApp.key`
 >
 > File named `fullchain.crt` contains myApp.crt, intermediateCa.crt and rootCa.crt
