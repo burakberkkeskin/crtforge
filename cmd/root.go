@@ -17,10 +17,10 @@ import (
 )
 
 //go:embed rootCACnf.templ
-var defaultCARootCACnf []byte
+var rootCaCnf []byte
 
 //go:embed intermediateCACnf.templ
-var defaultCAIntermediateCACnf []byte
+var intermediateCACnf []byte
 
 //go:embed applicationCnf.templ
 var applicationCnf []byte
@@ -49,12 +49,12 @@ func rootRun(cmd *cobra.Command, args []string) {
 	createConfigDir(configDirectory)
 	defaultCADir := createDefaultCADir(configDirectory)
 
-	defaultCARootCACrt, defaultCARootCACnf, defaultCARootCAkey := createDefaultRootCA(defaultCADir)
+	defaultCARootCACrt, defaultCARootCACnf, defaultCARootCAkey := createRootCa(defaultCADir)
 	_ = defaultCARootCAkey
 
-	defaultCAIntermediateCACrt, defaultCAIntermediateCACnf, defaultCAIntermediateCAkey := createDefaultIntermediateCACert(defaultCADir, defaultCARootCACnf)
+	defaultCAIntermediateCACrt, defaultCAIntermediateCACnf, defaultCAIntermediateCAkey := createIntermediateCa(defaultCADir, defaultCARootCACnf)
 
-	createDefaultApplicationCrt(defaultCADir, defaultCAIntermediateCACnf, defaultCAIntermediateCACrt, defaultCAIntermediateCAkey, defaultCARootCACrt, appName, appDomains[0], appDomains)
+	createAppCrt(defaultCADir, defaultCAIntermediateCACnf, defaultCAIntermediateCACrt, defaultCAIntermediateCAkey, defaultCARootCACrt, appName, appDomains[0], appDomains)
 }
 
 func createConfigDir(configDir string) {
@@ -66,74 +66,74 @@ func createConfigDir(configDir string) {
 	}
 }
 
-func createDefaultRootCA(defaultCADir string) (string, string, string) {
+func createRootCa(CaDir string) (string, string, string) {
 	// Create the default root ca folder if not exists:
-	defaultCARootCADir := defaultCADir + "/rootCA"
+	rootCaDir := CaDir + "/rootCA"
 
-	if _, err := os.Stat(defaultCARootCADir); os.IsNotExist(err) {
-		err := os.Mkdir(defaultCARootCADir, 0700)
+	if _, err := os.Stat(rootCaDir); os.IsNotExist(err) {
+		err := os.Mkdir(rootCaDir, 0700)
 		if err != nil {
 			log.Fatal(err)
 		}
 	}
 
 	// Create rootCA key with openssl
-	defaultCARootCAKeyFile := defaultCARootCADir + "/rootCA.key"
-	if _, err := os.Stat(defaultCARootCAKeyFile); os.IsNotExist(err) {
-		createRootCaKeyCmd := exec.Command("openssl", "genrsa", "-out", defaultCARootCAKeyFile, "4096")
-		createRootCaKeyCmd.Dir = defaultCARootCADir
+	rootCaKeyFile := rootCaDir + "/rootCA.key"
+	if _, err := os.Stat(rootCaKeyFile); os.IsNotExist(err) {
+		createRootCaKeyCmd := exec.Command("openssl", "genrsa", "-out", rootCaKeyFile, "4096")
+		createRootCaKeyCmd.Dir = rootCaDir
 		err = createRootCaKeyCmd.Run()
 		if err != nil {
 			log.Fatal(err)
 		}
-		fmt.Println("Root CA Key generated at ", defaultCARootCAKeyFile)
+		fmt.Println("Root CA Key generated at ", rootCaKeyFile)
 	}
 
 	// Create default CA root CA cnf file
-	defaultCARootCnfFile := defaultCARootCADir + "/rootCA.cnf"
-	if _, err := os.Stat(defaultCARootCnfFile); os.IsNotExist(err) {
-		err := os.WriteFile(defaultCARootCnfFile, defaultCARootCACnf, os.ModePerm)
+	rootCaCnfFile := rootCaDir + "/rootCA.cnf"
+	if _, err := os.Stat(rootCaCnfFile); os.IsNotExist(err) {
+		err := os.WriteFile(rootCaCnfFile, rootCaCnf, os.ModePerm)
 		if err != nil {
 			log.Fatal(err)
 		}
-		fmt.Println("Root CA CNF generated at ", defaultCARootCnfFile)
+		fmt.Println("Root CA CNF generated at ", rootCaCnfFile)
 	}
 
 	// Create default CA root CA crt file
-	defaultCARootCrtFile := defaultCARootCADir + "/rootCA.crt"
-	if _, err := os.Stat(defaultCARootCrtFile); os.IsNotExist(err) {
+	rootCaCrtFile := rootCaDir + "/rootCA.crt"
+	if _, err := os.Stat(rootCaCrtFile); os.IsNotExist(err) {
 		createRootCaCrtCmd := exec.Command(
 			"openssl", "req",
-			"-config", defaultCARootCnfFile,
-			"-key", defaultCARootCAKeyFile,
+			"-config", rootCaCnfFile,
+			"-key", rootCaKeyFile,
 			"-new", "-x509",
 			"-days", "7305",
 			"-sha256", "-extensions",
 			"v3_ca",
 			"-subj", "/C=TR/ST=Istanbul/L=Istanbul/O=Safderun/OU=Safderun ROOT CA/CN=Safderun ROOT CA/emailAddress=burakberkkeskin@gmail.com",
-			"-out", defaultCARootCrtFile)
-		createRootCaCrtCmd.Dir = defaultCARootCADir
+			"-out", rootCaCrtFile)
+		createRootCaCrtCmd.Dir = rootCaDir
 		err = createRootCaCrtCmd.Run()
 		if err != nil {
 			log.Fatal("Error while creating default ca root ca crt: ", err)
 		}
-		fmt.Println("Root CA crt generated at ", defaultCARootCAKeyFile)
+		fmt.Println("Root CA crt generated at ", rootCaKeyFile)
 	}
 
 	// Create necessary files & folders
-	newCertDir := defaultCARootCADir + "/newcerts"
-	if _, err := os.Stat(newCertDir); os.IsNotExist(err) {
+	newCertsDir := rootCaDir + "/newcerts"
+	if _, err := os.Stat(newCertsDir); os.IsNotExist(err) {
 		fmt.Println("newcerts folder does not exists")
-		err := os.Mkdir(newCertDir, 0755)
+		err := os.Mkdir(newCertsDir, 0755)
 		if err != nil {
-			log.Fatal("error while creating newcert dir", err)
+			log.Fatal("error while creating newcerts dir", err)
 		}
 	}
 
-	indexFile := defaultCARootCADir + "/index.txt"
+	indexFile := rootCaDir + "/index.txt"
 	os.OpenFile(indexFile, os.O_RDONLY|os.O_CREATE, 0600)
 
-	serialFile := defaultCARootCADir + "/serial"
+	serialFile := rootCaDir + "/serial"
 	if _, err := os.Stat(serialFile); os.IsNotExist(err) {
 		file, err := os.Create(serialFile)
 		if err != nil {
@@ -150,209 +150,210 @@ func createDefaultRootCA(defaultCADir string) (string, string, string) {
 	}
 	os.OpenFile(serialFile, os.O_RDONLY|os.O_CREATE, 0600)
 	fmt.Println("Root CA initialized ")
-	return defaultCARootCrtFile, defaultCARootCnfFile, defaultCARootCAKeyFile
+	return rootCaCrtFile, rootCaCnfFile, rootCaKeyFile
 }
 
-func createDefaultIntermediateCACert(defaultCADir string, defaultCARootCACnf string) (string, string, string) {
-	// Create the default intermediate ca folder if not exists:
-	defaultCAIntermediateCADir := defaultCADir + "/intermediateCA"
-	if _, err := os.Stat(defaultCAIntermediateCADir); os.IsNotExist(err) {
-		err := os.Mkdir(defaultCAIntermediateCADir, 0700)
+func createIntermediateCa(CaDir string, rootCaCnf string) (string, string, string) {
+	// Create intermediate ca folder
+	intermediateCaDir := CaDir + "/intermediateCA"
+	if _, err := os.Stat(intermediateCaDir); os.IsNotExist(err) {
+		err := os.Mkdir(intermediateCaDir, 0700)
 		if err != nil {
 			log.Fatal(err)
 		}
 	}
 
-	// Create intermediate key with openssl
-	defaultCAIntermediateCAKeyFile := defaultCAIntermediateCADir + "/intermediateCA.key"
-	if _, err := os.Stat(defaultCAIntermediateCAKeyFile); os.IsNotExist(err) {
-		createIntermediateCaKeyCmd := exec.Command("openssl", "genrsa", "-out", defaultCAIntermediateCAKeyFile, "4096")
-		createIntermediateCaKeyCmd.Dir = defaultCAIntermediateCADir
+	// Create intermediate ca key file
+	intermediateCaKeyFile := intermediateCaDir + "/intermediateCA.key"
+	if _, err := os.Stat(intermediateCaKeyFile); os.IsNotExist(err) {
+		createIntermediateCaKeyCmd := exec.Command("openssl", "genrsa", "-out", intermediateCaKeyFile, "4096")
+		createIntermediateCaKeyCmd.Dir = intermediateCaDir
 		err = createIntermediateCaKeyCmd.Run()
 		if err != nil {
 			log.Fatal(err)
 		}
-		fmt.Println("Intermediate CA Key generated at ", defaultCAIntermediateCAKeyFile)
+		fmt.Println("Intermediate CA Key generated at ", intermediateCaKeyFile)
 	}
 
-	// Create default CA intermediate CA cnf file
-	defaultCAIntermediateCnfFile := defaultCAIntermediateCADir + "/intermediateCA.cnf"
-	if _, err := os.Stat(defaultCAIntermediateCnfFile); os.IsNotExist(err) {
-		err := os.WriteFile(defaultCAIntermediateCnfFile, defaultCAIntermediateCACnf, os.ModePerm)
+	// Create intermediate ca cnf file
+	intermediateCaCnfFile := intermediateCaDir + "/intermediateCA.cnf"
+	if _, err := os.Stat(intermediateCaCnfFile); os.IsNotExist(err) {
+		err := os.WriteFile(intermediateCaCnfFile, intermediateCACnf, os.ModePerm)
 		if err != nil {
 			log.Fatal(err)
 		}
-		fmt.Println("Intermediate CA CNF generated at ", defaultCAIntermediateCnfFile)
+		fmt.Println("Intermediate CA CNF generated at ", intermediateCaCnfFile)
 	}
 
-	// Create default CA intermediate CA csr file
-	defaultCAIntermediateCsrFile := defaultCAIntermediateCADir + "/intermediateCA.csr"
-	if _, err := os.Stat(defaultCAIntermediateCsrFile); os.IsNotExist(err) {
+	// Create intermediate ca csr file
+	intermediateCaCsrFile := intermediateCaDir + "/intermediateCA.csr"
+	if _, err := os.Stat(intermediateCaCsrFile); os.IsNotExist(err) {
 		createIntermediateCaCsrCmd := exec.Command(
 			"openssl", "req", "-nodes",
-			"-config", defaultCAIntermediateCnfFile,
+			"-config", intermediateCaCnfFile,
 			"-new", "-sha256",
-			"-keyout", defaultCAIntermediateCAKeyFile,
-			"-out", defaultCAIntermediateCsrFile,
+			"-keyout", intermediateCaKeyFile,
+			"-out", intermediateCaCsrFile,
 			"-subj", "/C=TR/ST=Istanbul/L=Istanbul/O=Safderun/OU=Safderun Intermediate CA/CN=Safderun Intermediate CA/emailAddress=burakberkkeskin@gmail.com",
 		)
-		createIntermediateCaCsrCmd.Dir = defaultCAIntermediateCADir
+		createIntermediateCaCsrCmd.Dir = intermediateCaDir
 		err = createIntermediateCaCsrCmd.Run()
 		if err != nil {
 			log.Fatal("Error while creating default ca intermediate ca csr: ", err)
 		}
-		fmt.Println("Intermediate CA CSR generated at ", defaultCAIntermediateCsrFile)
+		fmt.Println("Intermediate CA CSR generated at ", intermediateCaCsrFile)
 	}
 
-	// Create default CA intermediate CA crt file
-	defaultCAIntermediateCrtFile := defaultCAIntermediateCADir + "/intermediateCA.crt"
-	if _, err := os.Stat(defaultCAIntermediateCrtFile); os.IsNotExist(err) {
+	// Create intermediate ca crt file
+	intermediateCaCrtFile := intermediateCaDir + "/intermediateCA.crt"
+	if _, err := os.Stat(intermediateCaCrtFile); os.IsNotExist(err) {
 		fmt.Println("Creating intermediate crt file")
 		createIntermediateCaCrtCmd := exec.Command(
 			"openssl", "ca", "-batch",
-			"-config", defaultCARootCACnf,
+			"-config", rootCaCnf,
 			"-extensions", "v3_intermediate_ca",
 			"-days", "3650",
 			"-notext", "-md", "sha256",
-			"-in", defaultCAIntermediateCsrFile,
-			"-out", defaultCAIntermediateCrtFile,
+			"-in", intermediateCaCsrFile,
+			"-out", intermediateCaCrtFile,
 		)
-		createIntermediateCaCrtCmd.Dir = defaultCAIntermediateCADir
+		createIntermediateCaCrtCmd.Dir = intermediateCaDir
 		err = createIntermediateCaCrtCmd.Run()
 		if err != nil {
 			log.Fatal("Error while creating default ca intermediate ca crt: ", err)
 		}
-		fmt.Println("Intermediate CA CRT generated at ", defaultCAIntermediateCnfFile)
+		fmt.Println("Intermediate CA CRT generated at ", intermediateCaCnfFile)
 	}
 
 	fmt.Println("Intermediate CA initialized successfully.")
-	return defaultCAIntermediateCrtFile, defaultCAIntermediateCnfFile, defaultCAIntermediateCAKeyFile
+	return intermediateCaCrtFile, intermediateCaCnfFile, intermediateCaKeyFile
 }
 
-func createDefaultApplicationCrt(defaultCADir string, defaultCAIntermediateCaCnf string, defaultCAIntermediateCaCrt string, defaultCAIntermediateCaKey string, defaultCARootCACrt string, appName string, commonName string, altNames []string) {
-	// Create the default application  folder if not exists:
-	defaultCAApplicationCrtDir := defaultCADir + "/" + appName
-	if _, err := os.Stat(defaultCAApplicationCrtDir); os.IsNotExist(err) {
-		err := os.Mkdir(defaultCAApplicationCrtDir, 0700)
+func createAppCrt(defaultCADir string, intermediateCaCnf string, intermediateCaCrt string, intermediateCaKey string, rootCaCrt string, appName string, commonName string, altNames []string) {
+	// Create app directory if not exists:
+	appCrtDir := defaultCADir + "/" + appName
+	if _, err := os.Stat(appCrtDir); os.IsNotExist(err) {
+		err := os.Mkdir(appCrtDir, 0700)
 		if err != nil {
 			log.Fatal(err)
 		}
 	}
 
 	// Create app key with openssl
-	defaultCAApplicationKeyFile := defaultCAApplicationCrtDir + "/" + appName + ".key"
-	if _, err := os.Stat(defaultCAApplicationKeyFile); os.IsNotExist(err) {
-		createIntermediateCaKeyCmd := exec.Command("openssl", "genpkey", "-algorithm", "RSA", "-out", defaultCAApplicationKeyFile)
-		createIntermediateCaKeyCmd.Dir = defaultCAApplicationCrtDir
-		err = createIntermediateCaKeyCmd.Run()
+	applicationKeyFile := appCrtDir + "/" + appName + ".key"
+	if _, err := os.Stat(applicationKeyFile); os.IsNotExist(err) {
+		createAppKeyCmd := exec.Command("openssl", "genpkey", "-algorithm", "RSA", "-out", applicationKeyFile)
+		createAppKeyCmd.Dir = appCrtDir
+		err = createAppKeyCmd.Run()
 		if err != nil {
 			log.Fatal(err)
 		}
-		fmt.Println("Application Key generated at ", defaultCAApplicationKeyFile)
+		fmt.Println("App Key generated at ", applicationKeyFile)
 	}
 
+	// Create app cnf file
 	appCnf, err := prepareAppCnf(appName, commonName, altNames)
 	if err != nil {
-		fmt.Println("Error:", err)
+		fmt.Println("Error while creating app cnf file:", err)
 		return
 	}
-	// Create default CA App cnf file
-	defaultCAApplicationCnfFile := defaultCAApplicationCrtDir + "/" + appName + ".cnf"
-	if _, err := os.Stat(defaultCAApplicationCnfFile); os.IsNotExist(err) {
-		err := os.WriteFile(defaultCAApplicationCnfFile, appCnf, os.ModePerm)
+
+	applicationCnfFile := appCrtDir + "/" + appName + ".cnf"
+	if _, err := os.Stat(applicationCnfFile); os.IsNotExist(err) {
+		err := os.WriteFile(applicationCnfFile, appCnf, os.ModePerm)
 		if err != nil {
 			log.Fatal(err)
 		}
-		fmt.Println("App CNF generated at ", defaultCAApplicationCnfFile)
+		fmt.Println("App CNF generated at ", applicationCnfFile)
 	}
 
 	// Create default CA App csr file
-	defaultCAApplicationCsrFile := defaultCAApplicationCrtDir + "/" + appName + ".csr"
-	if _, err := os.Stat(defaultCAApplicationCsrFile); os.IsNotExist(err) {
-		createIntermediateCaCsrCmd := exec.Command(
+	applicationCsrFile := appCrtDir + "/" + appName + ".csr"
+	if _, err := os.Stat(applicationCsrFile); os.IsNotExist(err) {
+		createAppCsrCmd := exec.Command(
 			"openssl", "req", "-new",
-			"-key", defaultCAApplicationKeyFile,
-			"-config", defaultCAApplicationCnfFile,
-			"-out", defaultCAApplicationCsrFile,
+			"-key", applicationKeyFile,
+			"-config", applicationCnfFile,
+			"-out", applicationCsrFile,
 		)
-		createIntermediateCaCsrCmd.Dir = defaultCAApplicationCrtDir
-		err = createIntermediateCaCsrCmd.Run()
+		createAppCsrCmd.Dir = appCrtDir
+		err = createAppCsrCmd.Run()
 		if err != nil {
 			log.Fatal("Error while creating app csr: ", err)
 		}
-		fmt.Println("App csr generated at ", defaultCAApplicationCsrFile)
+		fmt.Println("App csr generated at ", applicationCsrFile)
 	}
 
 	// Create default CA intermediate CA crt file
-	defaultCAApplicationCrtFile := defaultCAApplicationCrtDir + "/" + appName + ".crt"
-	if _, err := os.Stat(defaultCAApplicationCrtFile); os.IsNotExist(err) {
-		createIntermediateCaCrtCmd := exec.Command(
+	applicationCrtFile := appCrtDir + "/" + appName + ".crt"
+	if _, err := os.Stat(applicationCrtFile); os.IsNotExist(err) {
+		createAppCrtCmd := exec.Command(
 			"openssl", "x509", "-req",
-			"-in", defaultCAApplicationCsrFile,
-			"-CA", defaultCAIntermediateCaCrt,
-			"-CAkey", defaultCAIntermediateCaKey,
+			"-in", applicationCsrFile,
+			"-CA", intermediateCaCrt,
+			"-CAkey", intermediateCaKey,
 			"-CAcreateserial",
 			"-days", "365",
 			"-extensions", "v3_ext",
-			"-extfile", defaultCAApplicationCnfFile,
-			"-out", defaultCAApplicationCrtFile,
+			"-extfile", applicationCnfFile,
+			"-out", applicationCrtFile,
 		)
-		createIntermediateCaCrtCmd.Dir = defaultCAApplicationCrtDir
-		err = createIntermediateCaCrtCmd.Run()
+		createAppCrtCmd.Dir = appCrtDir
+		err = createAppCrtCmd.Run()
 		if err != nil {
 			log.Fatal("Error while creating app crt: ", err)
 		}
-		fmt.Println("App CRT generated at ", defaultCAApplicationCrtFile)
+		fmt.Println("App CRT generated at ", applicationCrtFile)
 	}
 
 	// Create fullchain cert file.
-	rootCACrt, err := os.ReadFile(defaultCARootCACrt)
+	rootCaCrtContent, err := os.ReadFile(rootCaCrt)
 	if err != nil {
 		fmt.Println("Error reading file root ca:", err)
 		return
 	}
 
-	intermediateCaCrt, err := os.ReadFile(defaultCAIntermediateCaCrt)
+	intermediateCaCrtContent, err := os.ReadFile(intermediateCaCrt)
 	if err != nil {
 		fmt.Println("Error reading file b:", err)
 		return
 	}
 
-	appCrt, err := os.ReadFile(defaultCAApplicationCrtFile)
+	appCrtContent, err := os.ReadFile(applicationCrtFile)
 	if err != nil {
 		fmt.Println("Error reading file b:", err)
 		return
 	}
 
-	defaultCAApplicationFullchainCrtFile := defaultCAApplicationCrtDir + "/fullchain.crt"
-	if _, err := os.Stat(defaultCAApplicationFullchainCrtFile); os.IsNotExist(err) {
-		file, err := os.Create(defaultCAApplicationFullchainCrtFile)
+	appFullchainCrtFile := appCrtDir + "/fullchain.crt"
+	if _, err := os.Stat(appFullchainCrtFile); os.IsNotExist(err) {
+		file, err := os.Create(appFullchainCrtFile)
 		if err != nil {
 			log.Fatal("Error creating fullchain file:", err)
 		}
 		defer file.Close()
 
-		fullchainCrtFile, err := os.OpenFile(defaultCAApplicationFullchainCrtFile, os.O_WRONLY|os.O_APPEND, 0600)
+		fullchainCrtFile, err := os.OpenFile(appFullchainCrtFile, os.O_WRONLY|os.O_APPEND, 0600)
 		if err != nil {
 			log.Fatal("Error opening file fullchain crt file:", err)
 		}
 		defer fullchainCrtFile.Close()
 
-		_, err = fullchainCrtFile.Write(appCrt)
+		_, err = fullchainCrtFile.Write(appCrtContent)
 		if err != nil {
 			log.Fatal("Error writing crt to file fullchain crt:", err)
 		}
 
-		_, err = fullchainCrtFile.Write(intermediateCaCrt)
+		_, err = fullchainCrtFile.Write(intermediateCaCrtContent)
 		if err != nil {
 			log.Fatal("Error writing intermediate ca to file fullchain crt:", err)
 		}
 
-		_, err = fullchainCrtFile.Write(rootCACrt)
+		_, err = fullchainCrtFile.Write(rootCaCrtContent)
 		if err != nil {
 			log.Fatal("Error writing root ca crt to file fullchain crt:", err)
 		}
-		fmt.Println("App Fullchain crt generated at ", defaultCAApplicationCrtFile)
+		fmt.Println("App Fullchain crt generated at ", applicationCrtFile)
 	}
 
 	fmt.Println("App Cert Generated Successfully.")
