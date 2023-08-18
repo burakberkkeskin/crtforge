@@ -27,23 +27,23 @@ var applicationCnf []byte
 
 // rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
-	Use:   "sslForge",
+	Use:   "crtForge",
 	Short: "Be a local cert authority",
-	Long: `With sslForge, you can create root, intermediate and application ca.
+	Long: `With crtForge, you can create root, intermediate and application ca.
 For example:
-./sslForge --root "Safderun Root"
+./crtForge --root "Safderun Root"
 `,
 	Run: rootRun,
 }
 
 func rootRun(cmd *cobra.Command, args []string) {
-	fmt.Println("Hello, sslForge!")
+	fmt.Println("Hello, crtForge!")
 
 	homeDirectory, err := os.UserHomeDir()
 	if err != nil {
 		log.Fatal(err)
 	}
-	configDirectory := homeDirectory + "/.config/sslForge"
+	configDirectory := homeDirectory + "/.config/crtForge"
 	createConfigDir(configDirectory)
 	defaultCADir := createDefaultCADir(configDirectory)
 
@@ -62,7 +62,7 @@ func rootRun(cmd *cobra.Command, args []string) {
 		fmt.Println("Using the variable:", defaultCARootCACrt)
 	}
 
-	createDefaultApplicationCrt(defaultCADir, defaultCAIntermediateCACnf, defaultCAIntermediateCACrt, defaultCAIntermediateCAkey, defaultCARootCACrt, "sslForge", "sslforge.com", []string{"sslforge.com", "app.sslforge.com"})
+	createDefaultApplicationCrt(defaultCADir, defaultCAIntermediateCACnf, defaultCAIntermediateCACrt, defaultCAIntermediateCAkey, defaultCARootCACrt, "crtForge", "crtforge.com", []string{"crtforge.com", "app.crtforge.com"})
 }
 
 func createConfigDir(configDir string) {
@@ -416,7 +416,7 @@ func init() {
 	// Cobra supports persistent flags, which, if defined here,
 	// will be global for your application.
 
-	// rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default is $HOME/.sslForge.yaml)")
+	// rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default is $HOME/.crtForge.yaml)")
 
 	// Cobra also supports local flags, which will only run
 	// when this action is called directly.
