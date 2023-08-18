@@ -54,6 +54,7 @@ total 24
 > File named `myApp.key` contains the private ssl key. Keep it secret!
 
 > :information_source: Usage
+>
 > You can use the `fullchain.crt` `myApp.key` in web servers like nginx, apache or mock servers.
 
 ## Background
