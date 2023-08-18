@@ -18,7 +18,7 @@ var rootCmd = &cobra.Command{
 	Short: "Be a local cert authority",
 	Long: `With crtforge, you can create root, intermediate and application ca.
 For example:
-./crtforge crtforge crtforge.com app.crtforge.com api.crtforge.com 
+./crtforge crtforgeapp crtforge.com app.crtforge.com api.crtforge.com 
 `,
 	Args: cobra.MinimumNArgs(2),
 	Run:  rootRun,
