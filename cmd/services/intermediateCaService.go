@@ -58,7 +58,7 @@ func CreateIntermediateCa(CaDir string, rootCaCnf string) (string, string, strin
 			"-new", "-sha256",
 			"-keyout", intermediateCaKeyFile,
 			"-out", intermediateCaCsrFile,
-			"-subj", "/C=TR/ST=Istanbul/L=Istanbul/O=Safderun/OU=Safderun Intermediate CA/CN=Safderun Intermediate CA/emailAddress=burakberkkeskin@gmail.com",
+			"-subj", "/C=TR/ST=Istanbul/L=Istanbul/O=Crtforge/OU=Crtforge Intermediate CA/CN=Crtforge Intermediate CA/emailAddress=crtforge@burakberk.dev",
 		)
 		createIntermediateCaCsrCmd.Dir = intermediateCaDir
 		err = createIntermediateCaCsrCmd.Run()
