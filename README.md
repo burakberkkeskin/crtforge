@@ -1,14 +1,16 @@
 ## Overview
 
-This tool is for creating cert chain that has root, intermediate and application with zero config.
+With no configuration, this utility generates a certificate chain that includes root, intermediate, and application certificates.
 
-You can easily create multiple fullchain certs for multiple applications.
+👉🏻 You can act as your own local certificate authority for self-hosted home lab apps. Simply create a number of app certs under the same root CA.
+
+👉🏻 For development purposes, you can easily generate a large number of full-chain certificates.
 
 ## Install
 
-You can download the binaries from the release page.
+The binaries can be downloaded from the release page.
 
-To install, simple run the commands below:
+Simply execute the following commands to install crtforge:
 
 ```bash
 sudo curl -L -o /usr/bin/crtforge https://github.com/safderun/crtForge/releases/download/v1.0.0/crtforge-$(uname -s)-$(uname -m) && \
@@ -20,10 +22,10 @@ sudo chmod +x /usr/bin/crtforge
 - You can create the fullchain cert within a second:
 
 ```bash
-sslforge myApp api.myapp.com app.myapp.com
+crtforge myApp api.myapp.com app.myapp.com
 ```
 
-- Your certs will be in the config file of sslforge
+- Your certs will be in the config file of crtforge
 
 ```bash
 cd $HOME/.config/crtforge/default/myApp && \
@@ -74,7 +76,7 @@ If you need a brand new chain, you can create a new rootCA with `--rootCa` flag.
 For example:
 
 ```bash
-sslforge --rootCa customRootCa myApp api.myapp.com app.myapp.com
+crtforge --rootCa customRootCa myApp api.myapp.com app.myapp.com
 ```
 
 After the command returns, a custom root ca named `customRootCa` has been created under `$HOME/.config/crtforge`.
