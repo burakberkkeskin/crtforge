@@ -61,7 +61,7 @@ func CreateRootCa(CaDir string) (string, string, string) {
 			"-days", "7305",
 			"-sha256", "-extensions",
 			"v3_ca",
-			"-subj", "/C=TR/ST=Istanbul/L=Istanbul/O=Safderun/OU=Safderun ROOT CA/CN=Safderun ROOT CA/emailAddress=burakberkkeskin@gmail.com",
+			"-subj", "/C=TR/ST=Istanbul/L=Istanbul/O=Crtforge/OU=Crtforge ROOT CA/CN=Crtforge ROOT CA/emailAddress=crtforge@burakberk.dev",
 			"-out", rootCaCrtFile)
 		createRootCaCrtCmd.Dir = rootCaDir
 		err = createRootCaCrtCmd.Run()
