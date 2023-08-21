@@ -13,7 +13,7 @@ The binaries can be downloaded from the release page.
 Simply execute the following commands to install crtforge:
 
 ```bash
-sudo curl -L -o /usr/bin/crtforge https://github.com/safderun/crtForge/releases/download/v1.0.0/crtforge-$(uname -s)-$(uname -m) && \
+sudo curl -L -o /usr/bin/crtforge https://github.com/safderun/crtForge/releases/download/v1.2.0/crtforge-$(uname -s)-$(uname -m) && \
 sudo chmod +x /usr/bin/crtforge
 ```
 
