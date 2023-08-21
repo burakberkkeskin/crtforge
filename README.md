@@ -45,7 +45,7 @@ total 24
 -rw------- 1 ubuntu ubuntu 1704 Aug 18 23:06 myApp.key
 ```
 
-> :information_source: Files and meanings
+> :information_source: Files and Meanings
 >
 > You will probably use `fullchain.crt` `myApp.crt` `myApp.key`
 >
@@ -76,7 +76,7 @@ If you need a brand new chain, you can create a new rootCA with `--rootCa` flag.
 For example:
 
 ```bash
-crtforge --rootCa customRootCa myApp api.myapp.com app.myapp.com
+crtforge --root-ca customRootCa myApp api.myapp.com app.myapp.com
 ```
 
 After the command returns, a custom root ca named `customRootCa` has been created under `$HOME/.config/crtforge`.
@@ -84,3 +84,86 @@ After the command returns, a custom root ca named `customRootCa` has been create
 The folder structure is same as default.
 
 You can get the application certificates under `$HOME/.config/crtforge/customRootCa/myApp`
+
+## Custom Intermediate CA
+
+#### Under Default Root CA
+
+If you want to create a custom intermediate CA under the default root CA, you can use the --intermediate-ca or -i flag.
+
+For example:
+
+```bash
+crtforge --intermediate-ca Backend apigateway apigw.myapp.com
+crtforge -i Frontend website myapp.com app.myapp.com
+```
+
+This two commands will create two self signed cert under two intermediate ca which are under the default root ca.
+The folder structure will be like below 👇
+
+```
+Root CA ("default")
+  |
+  |-- Intermediate CA 1 ("Backend")
+  |      |
+  |      |-- App 1 ("apigateway")
+  |            |
+  |            |-- apigw.myapp.com
+  |
+  |-- Intermediate CA 2 ("Frontend")
+  |      |
+  |      |-- App 2 ("website")
+  |            |
+  |            |-- myapp.com
+  |            |-- app.myapp.com
+```
+
+#### Under Custom Root CA
+
+You can also create multiple intermediate CAs under a custom root ca if you want.
+
+All you need to do is combining custom root ca flag and custom intermediate ca flag.
+
+Example:
+
+```bash
+crtforge --root-ca MedicalCompany --intermediate-ca Backend apigateway apigw.mymedicalcompany.com
+crtforge -r MedicalCompany -i Frontend website mymedicalcompany.com app.mymedicalcompany.com
+
+crtforge --root-ca FinanceCompany --intermediate-ca Backend apigateway apigw.myfinancecompany.com
+crtforge -r FinanceCompany -i Frontend website myfinancecompany.com app.myfinancecompany.com
+```
+
+The cert structure will be same as above except the rootCA name.
+
+```
+Root CA ("MedicalCompany")
+  |
+  |-- Intermediate CA 1 ("Backend")
+  |      |
+  |      |-- App 1 ("apigateway")
+  |            |
+  |            |-- apigw.mymedicalcompany.com
+  |
+  |-- Intermediate CA 2 ("Frontend")
+  |      |
+  |      |-- App 2 ("website")
+  |            |
+  |            |-- mymedicalcompany.com
+  |            |-- app.mymedicalcompany.com
+
+  Root CA ("FinanceCompany")
+  |
+  |-- Intermediate CA 1 ("Backend")
+  |      |
+  |      |-- App 1 ("apigateway")
+  |            |
+  |            |-- apigw.myfinancecompany.com
+  |
+  |-- Intermediate CA 2 ("Frontend")
+  |      |
+  |      |-- App 2 ("website")
+  |            |
+  |            |-- myfinancecompany.com
+  |            |-- app.myfinancecompany.com
+```
