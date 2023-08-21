@@ -13,6 +13,7 @@ import (
 )
 
 var caName string
+var intermediateCaName string
 
 // rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
@@ -41,7 +42,7 @@ func rootRun(cmd *cobra.Command, args []string) {
 	defaultCARootCACrt, defaultCARootCACnf, defaultCARootCAkey := services.CreateRootCa(defaultCADir)
 	_ = defaultCARootCAkey
 
-	defaultCAIntermediateCACrt, defaultCAIntermediateCACnf, defaultCAIntermediateCAkey := services.CreateIntermediateCa(defaultCADir, defaultCARootCACnf)
+	defaultCAIntermediateCACrt, defaultCAIntermediateCACnf, defaultCAIntermediateCAkey := services.CreateIntermediateCa(defaultCADir, intermediateCaName, defaultCARootCACnf)
 
 	services.CreateAppCrt(defaultCADir, defaultCAIntermediateCACnf, defaultCAIntermediateCACrt, defaultCAIntermediateCAkey, defaultCARootCACrt, appName, appDomains[0], appDomains)
 }
@@ -69,7 +70,8 @@ func init() {
 	// Cobra supports persistent flags, which, if defined here,
 	// will be global for your application.
 
-	rootCmd.Flags().StringVar(&caName, "rootCa", "default", "Set CA Name")
+	rootCmd.Flags().StringVarP(&caName, "root-ca", "r", "default", "Set CA Name")
+	rootCmd.Flags().StringVarP(&intermediateCaName, "intermediate-ca", "i", "intermediateCA", "Set Intermediate CA Name")
 
 	// Cobra also supports local flags, which will only run
 	// when this action is called directly.

@@ -13,9 +13,9 @@ import (
 //go:embed intermediateCaCnf.tmpl
 var intermediateCACnfTmpl []byte
 
-func CreateIntermediateCa(CaDir string, rootCaCnf string) (string, string, string) {
+func CreateIntermediateCa(CaDir string, intermediateCaName string, rootCaCnf string) (string, string, string) {
 	// Create intermediate ca folder
-	intermediateCaDir := CaDir + "/intermediateCA"
+	intermediateCaDir := CaDir + "/" + intermediateCaName
 	if _, err := os.Stat(intermediateCaDir); os.IsNotExist(err) {
 		err := os.Mkdir(intermediateCaDir, 0700)
 		if err != nil {
@@ -52,13 +52,14 @@ func CreateIntermediateCa(CaDir string, rootCaCnf string) (string, string, strin
 	// Create intermediate ca csr file
 	intermediateCaCsrFile := intermediateCaDir + "/intermediateCA.csr"
 	if _, err := os.Stat(intermediateCaCsrFile); os.IsNotExist(err) {
+		crtSubject := "/C=TR/ST=Istanbul/L=Istanbul/O=Crtforge/OU=" + intermediateCaName + "/CN=Crtforge Intermediate CA/emailAddress=crtforge@burakberk.dev"
 		createIntermediateCaCsrCmd := exec.Command(
 			"openssl", "req", "-nodes",
 			"-config", intermediateCaCnfFile,
 			"-new", "-sha256",
 			"-keyout", intermediateCaKeyFile,
 			"-out", intermediateCaCsrFile,
-			"-subj", "/C=TR/ST=Istanbul/L=Istanbul/O=Crtforge/OU=Crtforge Intermediate CA/CN=Crtforge Intermediate CA/emailAddress=crtforge@burakberk.dev",
+			"-subj", crtSubject,
 		)
 		createIntermediateCaCsrCmd.Dir = intermediateCaDir
 		err = createIntermediateCaCsrCmd.Run()
