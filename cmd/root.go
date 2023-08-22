@@ -14,17 +14,16 @@ import (
 
 var caName string
 var intermediateCaName string
+var version = "v1.0.0"
+var commitId = "abcd"
 
 // rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
-	Use:   "crtforge",
-	Short: "Be a local cert authority",
-	Long: `With crtforge, you can create root, intermediate and application ca.
-For example:
-./crtforge crtforgeapp crtforge.com app.crtforge.com api.crtforge.com 
-`,
-	Args: cobra.MinimumNArgs(2),
-	Run:  rootRun,
+	Use:     "crtforge",
+	Short:   "Be a local cert authority",
+	Long:    `With crtforge, you can create root, intermediate and application ca.`,
+	Version: version + " " + commitId,
+	Run:     rootRun,
 }
 
 func rootRun(cmd *cobra.Command, args []string) {
@@ -69,7 +68,9 @@ func init() {
 	// Here you will define your flags and configuration settings.
 	// Cobra supports persistent flags, which, if defined here,
 	// will be global for your application.
+	rootCmd.Flags().BoolP("version", "v", false, "Print version information")
 
+	// rootCmd.Flags().BoolVar(&versionFlag, "version", false, "Print version")
 	rootCmd.Flags().StringVarP(&caName, "root-ca", "r", "default", "Set CA Name")
 	rootCmd.Flags().StringVarP(&intermediateCaName, "intermediate-ca", "i", "intermediateCA", "Set Intermediate CA Name")
 

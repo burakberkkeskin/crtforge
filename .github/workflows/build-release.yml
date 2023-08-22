@@ -18,10 +18,12 @@ jobs:
 
       - name: Build
         run: |
-          go build -o crtforge-Linux-x86_64 -v .
-          GOOS=linux GOARCH=arm64 go build -o crtforge-Linux-arm64 -v .
-          GOOS=darwin GOARCH=amd64 go build -o crtforge-Darwin-x86_64 -v . 
-          GOOS=darwin GOARCH=arm64 go build -o crtforge-Darwin-arm64 -v .
+          version=$(git describe --tags --abbrev=0)
+          commitId=$(git rev-parse --short $version)
+          go build -ldflags "-X crtforge/cmd.version=$version -X crtforge/cmd.commitId=$commitId" -o crtforge-Linux-x86_64 -v .
+          GOOS=linux GOARCH=arm64 go build -ldflags "-X crtforge/cmd.version=$version -X crtforge/cmd.commitId=$commitId" -o crtforge-Linux-arm64 -v .
+          GOOS=darwin GOARCH=amd64 go build -ldflags "-X crtforge/cmd.version=$version -X crtforge/cmd.commitId=$commitId" -o crtforge-Darwin-x86_64 -v . 
+          GOOS=darwin GOARCH=arm64 go build -ldflags "-X crtforge/cmd.version=$version -X crtforge/cmd.commitId=$commitId" -o crtforge-Darwin-arm64 -v .
 
       - name: Release
         uses: softprops/action-gh-release@v1
