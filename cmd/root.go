@@ -1,5 +1,5 @@
 /*
-Copyright © 2023 NAME HERE <EMAIL ADDRESS>
+Copyright © 2023 NAME HERE crtforge@burakberk.dev
 */
 package cmd
 
@@ -73,7 +73,14 @@ func init() {
 	rootCmd.Flags().StringVarP(&caName, "root-ca", "r", "default", "Set CA Name")
 	rootCmd.Flags().StringVarP(&intermediateCaName, "intermediate-ca", "i", "intermediateCA", "Set Intermediate CA Name")
 
+	// Example usages:
+	rootCmd.Example = `Generate a cert under the default root and the default intermediate ca: 
+./crtforge crtforgeapp crtforge.com app.crtforge.com api.crtforge.com [flags]
+
+Generate a cert under a root ca named medical and a intermediate ca named frontend:
+./crtforge crtforgeapp -r medical -i frontend crtforge.com app.crtforge.com api.crtforge.com [flags]`
+
 	// Cobra also supports local flags, which will only run
 	// when this action is called directly.
-	rootCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
+	// rootCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
 }
