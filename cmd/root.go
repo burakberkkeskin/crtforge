@@ -7,8 +7,9 @@ import (
 	"crtforge/cmd/services"
 	_ "embed"
 	"fmt"
-	"log"
 	"os"
+
+	log "github.com/sirupsen/logrus"
 
 	"github.com/spf13/cobra"
 )
@@ -27,6 +28,7 @@ var rootCmd = &cobra.Command{
 	Short:   "Be a local cert authority",
 	Long:    `With crtforge, you can create root, intermediate and application ca.`,
 	Version: version + " " + commitId,
+	PreRun:  toggleDebug,
 	Run:     rootRun,
 }
 
@@ -57,6 +59,7 @@ func rootRun(cmd *cobra.Command, args []string) {
 
 func createConfigDir(configDir string) {
 	if _, err := os.Stat(configDir); os.IsNotExist(err) {
+		log.Info("Creating config dir: ", configDir)
 		err := os.MkdirAll(configDir, 0700)
 		if err != nil {
 			log.Fatal(err)
@@ -83,6 +86,9 @@ func init() {
 
 	// Select if you want to trust to the root ca
 	rootCmd.Flags().BoolVarP(&trustRootCrt, "trust", "t", false, "Trust the root ca crt.")
+
+	// Select if you want to enable debug mode logging
+	rootCmd.PersistentFlags().BoolVarP(&debug, "debug", "d", false, "verbose logging")
 
 	// Select custom root ca
 	rootCmd.Flags().StringVarP(&caName, "root-ca", "r", "default", "Set CA Name.")

@@ -3,11 +3,11 @@ package services
 import (
 	"bytes"
 	_ "embed"
-	"fmt"
 	"html/template"
-	"log"
 	"os"
 	"os/exec"
+
+	log "github.com/sirupsen/logrus"
 )
 
 //go:embed rootCaCnf.tmpl
@@ -16,43 +16,53 @@ var rootCaCnfTmpl []byte
 func CreateRootCa(CaDir string) (string, string, string) {
 	// Create the default root ca folder if not exists:
 	rootCaDir := CaDir + "/rootCA"
-
 	if _, err := os.Stat(rootCaDir); os.IsNotExist(err) {
+		log.Debug("Root CA dir is being created", rootCaDir)
 		err := os.Mkdir(rootCaDir, 0700)
 		if err != nil {
-			log.Fatal(err)
+			log.Fatal("Error while creating Root CA dir: ", err)
 		}
+		log.Debug("Root CA dir generated at ", rootCaDir)
+	} else {
+		log.Debug("Root CA dir already exists, skipping.")
 	}
 
 	// Create rootCA key with openssl
 	rootCaKeyFile := rootCaDir + "/rootCA.key"
 	if _, err := os.Stat(rootCaKeyFile); os.IsNotExist(err) {
+		log.Debug("Root CA key is being created.")
 		createRootCaKeyCmd := exec.Command("openssl", "genrsa", "-out", rootCaKeyFile, "4096")
 		createRootCaKeyCmd.Dir = rootCaDir
 		err = createRootCaKeyCmd.Run()
 		if err != nil {
 			log.Fatal(err)
 		}
-		fmt.Println("Root CA Key generated at ", rootCaKeyFile)
+		log.Debug("Root CA Key generated at ", rootCaKeyFile)
+	} else {
+		log.Debug("Root CA Key already exists, skipping.")
 	}
 
 	// Create default CA root CA cnf file
-	rootCaCnf, err := prepareRootCnf(rootCaDir)
-	if err != nil {
-		log.Fatal("Error while creating root cnf file:", err)
-	}
 	rootCaCnfFile := rootCaDir + "/rootCA.cnf"
 	if _, err := os.Stat(rootCaCnfFile); os.IsNotExist(err) {
-		err := os.WriteFile(rootCaCnfFile, rootCaCnf, os.ModePerm)
+		log.Debug("Root CA Cnf being created.")
+		rootCaCnf, err := prepareRootCnf(rootCaDir)
+		if err != nil {
+			log.Fatal("Error while creating Root CA Cnf from template: ", err)
+		}
+		err = os.WriteFile(rootCaCnfFile, rootCaCnf, os.ModePerm)
 		if err != nil {
 			log.Fatal(err)
 		}
-		fmt.Println("Root CA CNF generated at ", rootCaCnfFile)
+		log.Debug("Root CA Cnf generated at ", rootCaCnfFile)
+	} else {
+		log.Debug("Root CA Cnf already exists, skipping.")
 	}
 
 	// Create default CA root CA crt file
 	rootCaCrtFile := rootCaDir + "/rootCA.crt"
 	if _, err := os.Stat(rootCaCrtFile); os.IsNotExist(err) {
+		log.Debug("Root Ca Crt being created")
 		createRootCaCrtCmd := exec.Command(
 			"openssl", "req",
 			"-config", rootCaCnfFile,
@@ -66,41 +76,55 @@ func CreateRootCa(CaDir string) (string, string, string) {
 		createRootCaCrtCmd.Dir = rootCaDir
 		err = createRootCaCrtCmd.Run()
 		if err != nil {
-			log.Fatal("Error while creating default ca root ca crt: ", err)
+			log.Fatal("Error while creating Root CA Crt: ", err)
 		}
-		fmt.Println("Root CA crt generated at ", rootCaKeyFile)
+		log.Debug("Root CA Crt generated at ", rootCaKeyFile)
+	} else {
+		log.Debug("Root CA Crt already exists, skipping.")
 	}
 
 	// Create necessary files & folders
 	newCertsDir := rootCaDir + "/newcerts"
 	if _, err := os.Stat(newCertsDir); os.IsNotExist(err) {
-		fmt.Println("newcerts folder does not exists")
+		log.Debug("Root Ca newcerts dir being created")
 		err := os.Mkdir(newCertsDir, 0755)
 		if err != nil {
-			log.Fatal("error while creating newcerts dir", err)
+			log.Fatal("Error while creating newcerts dir: ", err)
 		}
+		log.Debug("Root Ca newcerts dir generated at", newCertsDir)
+	} else {
+		log.Debug("Root CA newcerts dir already exists, skipping.")
+
 	}
 
 	indexFile := rootCaDir + "/index.txt"
-	os.OpenFile(indexFile, os.O_RDONLY|os.O_CREATE, 0600)
+	if _, err := os.Stat(indexFile); os.IsNotExist(err) {
+		log.Debug("Root Ca index file being created")
+		os.OpenFile(indexFile, os.O_RDONLY|os.O_CREATE, 0600)
+		log.Debug("Root Ca index file generated at", indexFile)
+	} else {
+		log.Debug("Root CA index file  already exists, skipping.")
+	}
 
 	serialFile := rootCaDir + "/serial"
 	if _, err := os.Stat(serialFile); os.IsNotExist(err) {
+		log.Debug("Root Ca serial file being created")
 		file, err := os.Create(serialFile)
 		if err != nil {
-			log.Fatal("Error creating file:", err)
+			log.Fatal("Error while creating the serial file:", err)
 		}
 		defer file.Close()
 		_, err = file.WriteString("1000\n")
 		if err != nil {
-			log.Fatal("Error writing to file:", err)
+			log.Fatal("Error while writing to the serial file:", err)
 		}
-		if err != nil {
-			log.Fatal(err)
-		}
+		log.Debug("Root Ca serial file generated at", serialFile)
+	} else {
+		log.Debug("Root CA serial file  already exists, skipping.")
 	}
+
 	os.OpenFile(serialFile, os.O_RDONLY|os.O_CREATE, 0600)
-	fmt.Println("Root CA initialized ")
+	log.Debug("Root CA created.")
 	return rootCaCrtFile, rootCaCnfFile, rootCaKeyFile
 }
 
