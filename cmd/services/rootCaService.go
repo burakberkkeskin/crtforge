@@ -30,7 +30,7 @@ func CreateRootCa(CaDir string) (string, string, string) {
 	// Create rootCA key with openssl
 	rootCaKeyFile := rootCaDir + "/rootCA.key"
 	if _, err := os.Stat(rootCaKeyFile); os.IsNotExist(err) {
-		log.Debug("Root CA key is being created.")
+		log.Debug("Root CA Key is being created.")
 		createRootCaKeyCmd := exec.Command("openssl", "genrsa", "-out", rootCaKeyFile, "4096")
 		createRootCaKeyCmd.Dir = rootCaDir
 		err = createRootCaKeyCmd.Run()
@@ -62,7 +62,7 @@ func CreateRootCa(CaDir string) (string, string, string) {
 	// Create default CA root CA crt file
 	rootCaCrtFile := rootCaDir + "/rootCA.crt"
 	if _, err := os.Stat(rootCaCrtFile); os.IsNotExist(err) {
-		log.Debug("Root Ca Crt being created")
+		log.Debug("Root CA Crt being created")
 		createRootCaCrtCmd := exec.Command(
 			"openssl", "req",
 			"-config", rootCaCnfFile,
@@ -86,12 +86,12 @@ func CreateRootCa(CaDir string) (string, string, string) {
 	// Create necessary files & folders
 	newCertsDir := rootCaDir + "/newcerts"
 	if _, err := os.Stat(newCertsDir); os.IsNotExist(err) {
-		log.Debug("Root Ca newcerts dir being created")
+		log.Debug("Root CA newcerts dir being created")
 		err := os.Mkdir(newCertsDir, 0755)
 		if err != nil {
 			log.Fatal("Error while creating newcerts dir: ", err)
 		}
-		log.Debug("Root Ca newcerts dir generated at", newCertsDir)
+		log.Debug("Root CA newcerts dir generated at", newCertsDir)
 	} else {
 		log.Debug("Root CA newcerts dir already exists, skipping.")
 
@@ -99,16 +99,16 @@ func CreateRootCa(CaDir string) (string, string, string) {
 
 	indexFile := rootCaDir + "/index.txt"
 	if _, err := os.Stat(indexFile); os.IsNotExist(err) {
-		log.Debug("Root Ca index file being created")
+		log.Debug("Root CA index file being created")
 		os.OpenFile(indexFile, os.O_RDONLY|os.O_CREATE, 0600)
-		log.Debug("Root Ca index file generated at", indexFile)
+		log.Debug("Root CA index file generated at", indexFile)
 	} else {
 		log.Debug("Root CA index file  already exists, skipping.")
 	}
 
 	serialFile := rootCaDir + "/serial"
 	if _, err := os.Stat(serialFile); os.IsNotExist(err) {
-		log.Debug("Root Ca serial file being created")
+		log.Debug("Root CA serial file being created")
 		file, err := os.Create(serialFile)
 		if err != nil {
 			log.Fatal("Error while creating the serial file:", err)
@@ -118,7 +118,7 @@ func CreateRootCa(CaDir string) (string, string, string) {
 		if err != nil {
 			log.Fatal("Error while writing to the serial file:", err)
 		}
-		log.Debug("Root Ca serial file generated at", serialFile)
+		log.Debug("Root CA serial file generated at", serialFile)
 	} else {
 		log.Debug("Root CA serial file  already exists, skipping.")
 	}
