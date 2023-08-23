@@ -40,6 +40,12 @@ func detectOs() string {
 func trustCrtOnLinux(crtPath *string) error {
 	fmt.Println(*crtPath, "is being trusted on Linux...")
 
+	sudoPermission := hasSudoPermissions()
+	if !sudoPermission {
+		return fmt.Errorf("you don't have sudo permissions to add cert to keychain")
+	}
+	fmt.Println("Sudo permission: ", sudoPermission)
+
 	crtPathSplitted := strings.Split(*crtPath, "/")
 	for i, j := 0, len(crtPathSplitted)-1; i < j; i, j = i+1, j-1 {
 		crtPathSplitted[i], crtPathSplitted[j] = crtPathSplitted[j], crtPathSplitted[i]
@@ -63,7 +69,7 @@ func trustCrtOnLinux(crtPath *string) error {
 		caPath = "/usr/local/share/ca-certificates/" + caName
 	}
 
-	cpCmd := exec.Command("cp", "-rf", *crtPath, caPath)
+	cpCmd := exec.Command("cp", *crtPath, caPath)
 	err := cpCmd.Run()
 	if err != nil {
 		return fmt.Errorf("error while adding cert to system")
@@ -74,6 +80,7 @@ func trustCrtOnLinux(crtPath *string) error {
 
 func trustCrtOnMacos(crtPath *string) error {
 	fmt.Println(*crtPath, "is being trusted on MacOS...")
+
 	isCrtTrustedCommand := exec.Command("security", "verify-cert", "-c", *crtPath)
 	err := isCrtTrustedCommand.Run()
 	if err == nil {
@@ -81,11 +88,11 @@ func trustCrtOnMacos(crtPath *string) error {
 		return nil
 	}
 	fmt.Println(*crtPath, "will be trusted on keychain")
+
 	sudoPermission := hasSudoPermissions()
 	if !sudoPermission {
 		return fmt.Errorf("you don't have sudo permissions to add cert to keychain")
 	}
-
 	fmt.Println("Sudo permission: ", sudoPermission)
 
 	trustCrtCommand := exec.Command("security", "add-trusted-cert", "-d", "-r", "trustRoot", "-k", "/Library/Keychains/System.keychain", *crtPath)

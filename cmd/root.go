@@ -81,14 +81,14 @@ func init() {
 	// Version Flag
 	rootCmd.Flags().BoolP("version", "v", false, "Print version information.")
 
+	// Select if you want to trust to the root ca
+	rootCmd.Flags().BoolVarP(&trustRootCrt, "trust", "t", false, "Trust the root ca crt.")
+
 	// Select custom root ca
 	rootCmd.Flags().StringVarP(&caName, "root-ca", "r", "default", "Set CA Name.")
 
 	// Select custom intermediate ca
 	rootCmd.Flags().StringVarP(&intermediateCaName, "intermediate-ca", "i", "intermediateCA", "Set Intermediate CA Name.")
-
-	// Select if you want to trust to the root ca
-	rootCmd.Flags().BoolVarP(&trustRootCrt, "trust", "t", true, "Trust the root ca crt.")
 
 	// Example usages:
 	rootCmd.Example = `Generate a cert under the default root and the default intermediate ca: 
