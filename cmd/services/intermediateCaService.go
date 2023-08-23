@@ -5,9 +5,10 @@ import (
 	_ "embed"
 	"fmt"
 	"html/template"
-	"log"
 	"os"
 	"os/exec"
+
+	log "github.com/sirupsen/logrus"
 )
 
 //go:embed intermediateCaCnf.tmpl
@@ -17,41 +18,53 @@ func CreateIntermediateCa(CaDir string, intermediateCaName string, rootCaCnf str
 	// Create intermediate ca folder
 	intermediateCaDir := CaDir + "/" + intermediateCaName
 	if _, err := os.Stat(intermediateCaDir); os.IsNotExist(err) {
+		log.Debug("Intermediate CA dir is being created", intermediateCaDir)
 		err := os.Mkdir(intermediateCaDir, 0700)
 		if err != nil {
-			log.Fatal(err)
+			log.Fatal("Error while creating Intermediate CA dir: ", err)
 		}
+		log.Debug("Intermediate CA dir generated at ", intermediateCaDir)
+	} else {
+		log.Debug("Intermediate CA dir already exists, skipping.")
 	}
 
 	// Create intermediate ca key file
 	intermediateCaKeyFile := intermediateCaDir + "/intermediateCA.key"
 	if _, err := os.Stat(intermediateCaKeyFile); os.IsNotExist(err) {
+		log.Debug("Intermediate CA Key is being created.")
 		createIntermediateCaKeyCmd := exec.Command("openssl", "genrsa", "-out", intermediateCaKeyFile, "4096")
 		createIntermediateCaKeyCmd.Dir = intermediateCaDir
 		err = createIntermediateCaKeyCmd.Run()
 		if err != nil {
 			log.Fatal(err)
 		}
-		fmt.Println("Intermediate CA Key generated at ", intermediateCaKeyFile)
+		log.Debug("Intermediate CA Key generated at ", intermediateCaKeyFile)
+	} else {
+		log.Debug("Intermediate CA Key already exists, skipping.")
 	}
 
 	// Create intermediate ca cnf file
-	intermediateCaCnf, err := prepareIntermediateCnf(intermediateCaDir)
-	if err != nil {
-		log.Fatal("Error while creating intermediate cnf file:", err)
-	}
+
 	intermediateCaCnfFile := intermediateCaDir + "/intermediateCA.cnf"
 	if _, err := os.Stat(intermediateCaCnfFile); os.IsNotExist(err) {
-		err := os.WriteFile(intermediateCaCnfFile, intermediateCaCnf, os.ModePerm)
+		log.Debug("Intermediate CA Cnf being created.")
+		intermediateCaCnf, err := prepareIntermediateCnf(intermediateCaDir)
 		if err != nil {
-			log.Fatal(err)
+			log.Fatal("Error while creating Intermediate CA Cnf from template: ", err)
 		}
-		fmt.Println("Intermediate CA CNF generated at ", intermediateCaCnfFile)
+		err = os.WriteFile(intermediateCaCnfFile, intermediateCaCnf, os.ModePerm)
+		if err != nil {
+			log.Fatal("Error while writing Intermediate CA Cnf to file: ", err)
+		}
+		log.Debug("Intermediate CA Cnf generated at ", intermediateCaCnfFile)
+	} else {
+		log.Debug("Intermediate CA Cnf already exists, skipping.")
 	}
 
 	// Create intermediate ca csr file
 	intermediateCaCsrFile := intermediateCaDir + "/intermediateCA.csr"
 	if _, err := os.Stat(intermediateCaCsrFile); os.IsNotExist(err) {
+		log.Debug("Intermediate CA Csr being created.")
 		crtSubject := "/C=TR/ST=Istanbul/L=Istanbul/O=Crtforge/OU=" + intermediateCaName + "/CN=Crtforge Intermediate CA/emailAddress=crtforge@burakberk.dev"
 		createIntermediateCaCsrCmd := exec.Command(
 			"openssl", "req", "-nodes",
@@ -64,15 +77,17 @@ func CreateIntermediateCa(CaDir string, intermediateCaName string, rootCaCnf str
 		createIntermediateCaCsrCmd.Dir = intermediateCaDir
 		err = createIntermediateCaCsrCmd.Run()
 		if err != nil {
-			log.Fatal("Error while creating default ca intermediate ca csr: ", err)
+			log.Fatal("Error while creating Intermediate CA Crt: ", err)
 		}
-		fmt.Println("Intermediate CA CSR generated at ", intermediateCaCsrFile)
+		log.Debug("Intermediate CA Csr generated at ", intermediateCaCsrFile)
+	} else {
+		log.Debug("Intermediate CA Csr already exists, skipping.")
 	}
 
 	// Create intermediate ca crt file
 	intermediateCaCrtFile := intermediateCaDir + "/intermediateCA.crt"
 	if _, err := os.Stat(intermediateCaCrtFile); os.IsNotExist(err) {
-		fmt.Println("Creating intermediate crt file")
+		log.Debug("Intermediate CA Crt being created")
 		createIntermediateCaCrtCmd := exec.Command(
 			"openssl", "ca", "-batch",
 			"-config", rootCaCnf,
@@ -85,12 +100,12 @@ func CreateIntermediateCa(CaDir string, intermediateCaName string, rootCaCnf str
 		createIntermediateCaCrtCmd.Dir = intermediateCaDir
 		err = createIntermediateCaCrtCmd.Run()
 		if err != nil {
-			log.Fatal("Error while creating default ca intermediate ca crt: ", err)
+			log.Fatal("Error while creating Intermediate CA Crt: ", err)
 		}
-		fmt.Println("Intermediate CA CRT generated at ", intermediateCaCnfFile)
+		log.Debug("Intermediate CA Crt generated at ", intermediateCaCrtFile)
 	}
 
-	fmt.Println("Intermediate CA initialized successfully.")
+	fmt.Println("Intermediate CA created.")
 	return intermediateCaCrtFile, intermediateCaCnfFile, intermediateCaKeyFile
 }
 

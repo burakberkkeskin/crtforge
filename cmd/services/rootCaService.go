@@ -52,7 +52,7 @@ func CreateRootCa(CaDir string) (string, string, string) {
 		}
 		err = os.WriteFile(rootCaCnfFile, rootCaCnf, os.ModePerm)
 		if err != nil {
-			log.Fatal(err)
+			log.Fatal("Error while writing Root CA Cnf to file: ", err)
 		}
 		log.Debug("Root CA Cnf generated at ", rootCaCnfFile)
 	} else {
