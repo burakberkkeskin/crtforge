@@ -40,11 +40,11 @@ func detectOs() string {
 func trustCrtOnLinux(crtPath *string) error {
 	fmt.Println(*crtPath, "is being trusted on Linux...")
 
-	sudoPermission := hasSudoPermissions()
-	if !sudoPermission {
-		return fmt.Errorf("you don't have sudo permissions to add cert to keychain")
-	}
-	fmt.Println("Sudo permission: ", sudoPermission)
+	// sudoPermission := hasSudoPermissions()
+	// if !sudoPermission {
+	// 	return fmt.Errorf("you don't have sudo permissions to add cert to keychain")
+	// }
+	// fmt.Println("Sudo permission: ", sudoPermission)
 
 	crtPathSplitted := strings.Split(*crtPath, "/")
 	for i, j := 0, len(crtPathSplitted)-1; i < j; i, j = i+1, j-1 {
@@ -89,13 +89,13 @@ func trustCrtOnMacos(crtPath *string) error {
 	}
 	fmt.Println(*crtPath, "will be trusted on keychain")
 
-	sudoPermission := hasSudoPermissions()
-	if !sudoPermission {
-		return fmt.Errorf("you don't have sudo permissions to add cert to keychain")
-	}
-	fmt.Println("Sudo permission: ", sudoPermission)
+	// sudoPermission := hasSudoPermissions()
+	// if !sudoPermission {
+	// 	return fmt.Errorf("you don't have sudo permissions to add cert to keychain")
+	// }
+	// fmt.Println("Sudo permission: ", sudoPermission)
 
-	trustCrtCommand := exec.Command("security", "add-trusted-cert", "-d", "-r", "trustRoot", "-k", "/Library/Keychains/System.keychain", *crtPath)
+	trustCrtCommand := exec.Command("sudo", "security", "add-trusted-cert", "-d", "-r", "trustRoot", "-k", "/Library/Keychains/System.keychain", *crtPath)
 	output, err := trustCrtCommand.CombinedOutput()
 	if err != nil {
 		fmt.Println("Command output:", string(output))
