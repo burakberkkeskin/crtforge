@@ -12,8 +12,11 @@ import (
 	"github.com/spf13/cobra"
 )
 
+// Cli flags
 var caName string
 var intermediateCaName string
+var trustRootCrt bool
+
 var version = "v1.0.0"
 var commitId = "abcd"
 
@@ -40,6 +43,10 @@ func rootRun(cmd *cobra.Command, args []string) {
 
 	defaultCARootCACrt, defaultCARootCACnf, defaultCARootCAkey := services.CreateRootCa(defaultCADir)
 	_ = defaultCARootCAkey
+
+	if trustRootCrt {
+		services.TrustCrt(defaultCARootCACrt)
+	}
 
 	defaultCAIntermediateCACrt, defaultCAIntermediateCACnf, defaultCAIntermediateCAkey := services.CreateIntermediateCa(defaultCADir, intermediateCaName, defaultCARootCACnf)
 
@@ -68,11 +75,18 @@ func init() {
 	// Here you will define your flags and configuration settings.
 	// Cobra supports persistent flags, which, if defined here,
 	// will be global for your application.
-	rootCmd.Flags().BoolP("version", "v", false, "Print version information")
 
-	// rootCmd.Flags().BoolVar(&versionFlag, "version", false, "Print version")
-	rootCmd.Flags().StringVarP(&caName, "root-ca", "r", "default", "Set CA Name")
-	rootCmd.Flags().StringVarP(&intermediateCaName, "intermediate-ca", "i", "intermediateCA", "Set Intermediate CA Name")
+	// Version Flag
+	rootCmd.Flags().BoolP("version", "v", false, "Print version information.")
+
+	// Select custom root ca
+	rootCmd.Flags().StringVarP(&caName, "root-ca", "r", "default", "Set CA Name.")
+
+	// Select custom intermediate ca
+	rootCmd.Flags().StringVarP(&intermediateCaName, "intermediate-ca", "i", "intermediateCA", "Set Intermediate CA Name.")
+
+	// Select if you want to trust to the root ca
+	rootCmd.Flags().BoolVarP(&trustRootCrt, "trust", "t", true, "Trust the root ca crt.")
 
 	// Example usages:
 	rootCmd.Example = `Generate a cert under the default root and the default intermediate ca: 
@@ -80,8 +94,4 @@ func init() {
 
 Generate a cert under a root ca named medical and a intermediate ca named frontend:
 ./crtforge crtforgeapp -r medical -i frontend crtforge.com app.crtforge.com api.crtforge.com [flags]`
-
-	// Cobra also supports local flags, which will only run
-	// when this action is called directly.
-	// rootCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
 }
