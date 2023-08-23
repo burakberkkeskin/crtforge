@@ -69,7 +69,7 @@ func trustCrtOnLinux(crtPath *string) error {
 		caPath = "/usr/local/share/ca-certificates/" + caName
 	}
 
-	cpCmd := exec.Command("cp", *crtPath, caPath)
+	cpCmd := exec.Command("sudo", "cp", *crtPath, caPath)
 	err := cpCmd.Run()
 	if err != nil {
 		return fmt.Errorf("error while adding cert to system")
