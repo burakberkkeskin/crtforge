@@ -3,9 +3,11 @@ package services
 import (
 	"fmt"
 	"log"
+	"os"
 	"os/exec"
 	"os/user"
 	"runtime"
+	"strings"
 )
 
 func TrustCrt(crtPath string) {
@@ -35,8 +37,39 @@ func detectOs() string {
 	return runtime.GOOS
 }
 
-func trustCrtOnLinux(crtPath *string) {
+func trustCrtOnLinux(crtPath *string) error {
 	fmt.Println(*crtPath, "is being trusted on Linux...")
+
+	crtPathSplitted := strings.Split(*crtPath, "/")
+	for i, j := 0, len(crtPathSplitted)-1; i < j; i, j = i+1, j-1 {
+		crtPathSplitted[i], crtPathSplitted[j] = crtPathSplitted[j], crtPathSplitted[i]
+	}
+
+	fmt.Println(crtPathSplitted)
+	caName := crtPathSplitted[3] + "-" + crtPathSplitted[2] + "-" + crtPathSplitted[0]
+	fmt.Println(caName)
+
+	var caPath string
+	if _, err := os.Stat("/etc/debian_version"); !os.IsNotExist(err) {
+		caPath = "/usr/local/share/ca-certificates/" + caName // Debian/Ubuntu
+	} else if _, err := os.Stat("/etc/arch-release"); !os.IsNotExist(err) {
+		caPath = "/etc/ca-certificates/trust-source/anchors/" + caName // Arch
+	} else if _, err := os.Stat("/etc/redhat-release"); !os.IsNotExist(err) {
+		caPath = "/etc/pki/ca-trust/source/anchors/" + caName // RedHat/CentOS
+	} else if _, err := os.Stat("/etc/fedora-release"); !os.IsNotExist(err) {
+		caPath = "/etc/pki/ca-trust/source/anchors/" + caName // Fedora
+	} else {
+		// Default to Debian path
+		caPath = "/usr/local/share/ca-certificates/" + caName
+	}
+
+	cpCmd := exec.Command("cp", "-rf", *crtPath, caPath)
+	err := cpCmd.Run()
+	if err != nil {
+		return fmt.Errorf("error while adding cert to system")
+	}
+
+	return nil
 }
 
 func trustCrtOnMacos(crtPath *string) error {
