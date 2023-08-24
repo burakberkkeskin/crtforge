@@ -1,4 +1,5 @@
-![Screenshot 2023-08-24 at 17 31 41](https://github.com/safderun/crtforge/assets/58513283/d064fd0e-7298-4980-b440-a49ca556cc01)
+![image](https://github.com/safderun/crtforge/assets/58513283/59198e2d-abd3-4f29-bd4c-a0a3f160c8b8)
+
 
 ## Overview
 
