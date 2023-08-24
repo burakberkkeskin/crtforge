@@ -5,7 +5,7 @@
 
 With no configuration, this utility generates a certificate chain that includes root, intermediate, and application certificates.
 
-👉🏻 You can act as your own local certificate authority for self-hosted home lab apps. Simply create a number of app certs under the same root CA.
+👉🏻 You can act as your own local certificate authority for self-hosted home lab apps. Just create a series of application certs under the same root CA.
 
 👉🏻 For development purposes, you can easily generate a large number of full-chain certificates.
 
@@ -13,7 +13,7 @@ With no configuration, this utility generates a certificate chain that�
 
 The binaries can be downloaded from the release page.
 
-Simply execute the following commands to install crtforge:
+Simply execute the following commands to install crtforge on Linux and macOS:
 
 ```bash
 sudo curl -L -o /usr/bin/crtforge https://github.com/safderun/crtForge/releases/latest/download/crtforge-$(uname -s)-$(uname -m) && \
