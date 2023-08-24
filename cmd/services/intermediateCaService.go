@@ -3,7 +3,6 @@ package services
 import (
 	"bytes"
 	_ "embed"
-	"fmt"
 	"html/template"
 	"os"
 	"os/exec"
@@ -105,7 +104,7 @@ func CreateIntermediateCa(CaDir string, intermediateCaName string, rootCaCnf str
 		log.Debug("Intermediate CA Crt generated at ", intermediateCaCrtFile)
 	}
 
-	fmt.Println("Intermediate CA created.")
+	log.Debug("Intermediate CA created.")
 	return intermediateCaCrtFile, intermediateCaCnfFile, intermediateCaKeyFile
 }
 

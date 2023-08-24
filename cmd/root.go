@@ -6,7 +6,6 @@ package cmd
 import (
 	"crtforge/cmd/services"
 	_ "embed"
-	"fmt"
 	"os"
 
 	log "github.com/sirupsen/logrus"
@@ -47,7 +46,6 @@ func rootRun(cmd *cobra.Command, args []string) {
 	defaultCARootCACrt, defaultCARootCACnf, defaultCARootCAkey := services.CreateRootCa(defaultCADir)
 	_ = defaultCARootCAkey
 
-	fmt.Println(trustRootCrt)
 	if trustRootCrt {
 		services.TrustCrt(defaultCARootCACrt)
 	}

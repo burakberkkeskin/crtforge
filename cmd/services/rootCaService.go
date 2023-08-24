@@ -35,7 +35,7 @@ func CreateRootCa(CaDir string) (string, string, string) {
 		createRootCaKeyCmd.Dir = rootCaDir
 		err = createRootCaKeyCmd.Run()
 		if err != nil {
-			log.Fatal(err)
+			log.Debug("Error while creating Root CA Key: ")
 		}
 		log.Debug("Root CA Key generated at ", rootCaKeyFile)
 	} else {
@@ -62,7 +62,7 @@ func CreateRootCa(CaDir string) (string, string, string) {
 	// Create default CA root CA crt file
 	rootCaCrtFile := rootCaDir + "/rootCA.crt"
 	if _, err := os.Stat(rootCaCrtFile); os.IsNotExist(err) {
-		log.Debug("Root CA Crt being created")
+		log.Debug("Root CA Crt being created.")
 		createRootCaCrtCmd := exec.Command(
 			"openssl", "req",
 			"-config", rootCaCnfFile,

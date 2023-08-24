@@ -5,7 +5,6 @@ import (
 	"log"
 	"os"
 	"os/exec"
-	"os/user"
 	"runtime"
 	"strings"
 )
@@ -106,12 +105,4 @@ func trustCrtOnMacos(crtPath *string) error {
 	fmt.Println(*crtPath, "has been added to keychain successfully.")
 	return nil
 
-}
-
-func hasSudoPermissions() bool {
-	currentUser, err := user.Current()
-	if err != nil {
-		log.Fatalf("[hasSudoPermissions] Unable to get current user: %s", err)
-	}
-	return currentUser.Username == "root"
 }
