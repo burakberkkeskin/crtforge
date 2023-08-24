@@ -6,7 +6,7 @@ With no configuration, this utility generates a certificate chain that�
 
 👉🏻 For development purposes, you can easily generate a large number of full-chain certificates.
 
-## Install
+## Install Crtforge
 
 The binaries can be downloaded from the release page.
 
@@ -22,21 +22,19 @@ sudo chmod +x /usr/bin/crtforge
 - You can create the fullchain cert within a second:
 
 ```bash
-crtforge myApp api.myapp.com app.myapp.com
-```
+$ crtforge myApp api.myapp.com app.myapp.com
 
-- Your certs will be in the config file of crtforge
-
-```bash
-cd $HOME/.config/crtforge/default/myApp && \
-ls -l
+App certs created successfully.
+App name: myApp
+Domains: [api.myapp.com app.myapp.com]
+To see your cert files, please check the dir: /Users/burakberkkeskin/.config/crtforge/default/myApp
 ```
 
 - 🎉 Ta-Da Your certs are ready.
-- To output should be like below:
 
-```output
-ls -l
+```bash
+$ ls -l $HOME/.config/crtforge/default/myApp
+
 total 24
 -rw-rw-r-- 1 ubuntu ubuntu 5477 Aug 18 23:06 fullchain.crt
 -rwxrwxr-x 1 ubuntu ubuntu  320 Aug 18 23:06 myApp.cnf
@@ -58,6 +56,26 @@ total 24
 > :information_source: Usage
 >
 > You can use the `fullchain.crt` `myApp.key` in web servers like nginx, apache or mock servers.
+
+## Trusting Self Signed Root CA
+
+By default, if you create a web server with the fullchain cert, and make a http request, you will get self signed cert error.
+
+To solve this, all you need to do is add a --trust or -t flag to crtforge.
+
+For example:
+
+```bash
+# Create a app cert and trust the root cert of it
+crtforge landingpage example.com --trust
+
+# You can also use --trust flag with --root-ca flag for a custom root ca
+crtforge -r medical backend api.example.com auth.example.com
+```
+
+> :information_source: Recommendation
+> If you plan to use the app certs for long time for example on-prem home lab apps, create them with same root ca and trust only that root ca.
+> So you don't need to trust all app certs one by one.
 
 ## Background
 
