@@ -88,18 +88,23 @@ func trustCrtOnMacos(crtPath *string) error {
 	}
 	fmt.Println(*crtPath, "will be trusted on keychain")
 
-	// sudoPermission := hasSudoPermissions()
-	// if !sudoPermission {
-	// 	return fmt.Errorf("you don't have sudo permissions to add cert to keychain")
-	// }
-	// fmt.Println("Sudo permission: ", sudoPermission)
+	allowCommand := exec.Command("sudo", "security", "authorizationdb", "write", "com.apple.trust-settings.admin", "allow")
+	output, err := allowCommand.CombinedOutput()
+	if err != nil {
+		return fmt.Errorf("failed while getting permission to add cert to the keychain: %s", output)
+	}
 
 	trustCrtCommand := exec.Command("sudo", "security", "add-trusted-cert", "-d", "-r", "trustRoot", "-k", "/Library/Keychains/System.keychain", *crtPath)
-	output, err := trustCrtCommand.CombinedOutput()
+	output, err = trustCrtCommand.CombinedOutput()
 	if err != nil {
 		fmt.Println("Command output:", string(output))
 		return fmt.Errorf("failed to add cert to keychain: %w", err)
+	}
 
+	disallowCommand := exec.Command("sudo", "security", "authorizationdb", "remove", "com.apple.trust-settings.admin")
+	output, err = disallowCommand.CombinedOutput()
+	if err != nil {
+		return fmt.Errorf("failed while removing keychain permission : %s", output)
 	}
 
 	fmt.Println(*crtPath, "has been added to keychain successfully.")
