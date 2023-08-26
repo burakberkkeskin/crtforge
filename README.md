@@ -29,7 +29,7 @@ $ crtforge myApp api.myapp.com app.myapp.com
 App certs created successfully.
 App name: myApp
 Domains: [api.myapp.com app.myapp.com]
-To see your cert files, please check the dir: /Users/burakberkkeskin/.config/crtforge/default/myApp
+To see your cert files, please check the dir: /home/ubuntu/.config/crtforge/default/myApp
 ```
 
 - 🎉 Ta-Da Your certs are ready.
