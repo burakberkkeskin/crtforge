@@ -2,7 +2,11 @@ package services
 
 import (
 	"bytes"
+	"crypto/rand"
+	"crypto/rsa"
+	"crypto/x509"
 	_ "embed"
+	"encoding/pem"
 	"html/template"
 	"os"
 	"os/exec"
@@ -30,14 +34,25 @@ func CreateRootCa(CaDir string) (string, string, string) {
 	// Create rootCA key with openssl
 	rootCaKeyFile := rootCaDir + "/rootCA.key"
 	if _, err := os.Stat(rootCaKeyFile); os.IsNotExist(err) {
-		log.Debug("Root CA Key is being created.")
-		createRootCaKeyCmd := exec.Command("openssl", "genrsa", "-out", rootCaKeyFile, "4096")
-		createRootCaKeyCmd.Dir = rootCaDir
-		err = createRootCaKeyCmd.Run()
+		caPrivKey, err := rsa.GenerateKey(rand.Reader, 4096)
 		if err != nil {
-			log.Debug("Error while creating Root CA Key: ")
+			log.Error(err)
 		}
-		log.Debug("Root CA Key generated at ", rootCaKeyFile)
+		// Encode the private key to PEM format
+		privKeyBytes := x509.MarshalPKCS1PrivateKey(caPrivKey)
+		privKeyPEM := &pem.Block{
+			Type:  "RSA PRIVATE KEY",
+			Bytes: privKeyBytes,
+		}
+		file, err := os.Create(rootCaKeyFile)
+		if err != nil {
+			panic(err)
+		}
+		defer file.Close()
+		err = pem.Encode(file, privKeyPEM)
+		if err != nil {
+			panic(err)
+		}
 	} else {
 		log.Debug("Root CA Key already exists, skipping.")
 	}
