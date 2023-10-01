@@ -30,7 +30,7 @@ jobs:
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
       - name: 'Get Metadata'
-        id: metada
+        id: metadata
         run: |
           git config user.name "GitHub Actions"
           git config user.email "actions@github.com"
@@ -38,9 +38,15 @@ jobs:
           previousTag=$(git tag --sort=-v:refname | tail -n +2 | head -n 1)
           version=$(git describe --tags --abbrev=0)
           commitId=$(git rev-parse --short $version)
+          releaseBinary=true
+          if [[ "${version}" == *"beta"* || "${version}" == *"alpha"* ]]; then
+            echo "Tag contains beta or alpha, skipping release."
+            releaseBinary=false
+          fi
           echo "previousTag=$previousTag" >> "$GITHUB_OUTPUT"
           echo "version=$version" >> "$GITHUB_OUTPUT"
           echo "commitId=$commitId" >> "$GITHUB_OUTPUT"
+          echo "releaseBinary=$releaseBinary" >> "$GITHUB_OUTPUT"
 
       - name: 'Docker Metadata'
         id: dockerMetadata
@@ -59,14 +65,14 @@ jobs:
           GOOS=darwin GOARCH=amd64 go build -ldflags "-X crtforge/cmd.version=$version -X crtforge/cmd.commitId=$commitId" -o crtforge-Darwin-x86_64 -v . 
           GOOS=darwin GOARCH=arm64 go build -ldflags "-X crtforge/cmd.version=$version -X crtforge/cmd.commitId=$commitId" -o crtforge-Darwin-arm64 -v .
         env:
-          version: ${{ steps.metada.outputs.version }}
-          commitId: ${{ steps.metada.outputs.commitId }}
+          version: ${{ steps.metadata.outputs.version }}
+          commitId: ${{ steps.metadata.outputs.commitId }}
 
       - name: '✏️ Generate release changelog'
         uses: heinrichreimer/action-github-changelog-generator@v2.3
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
-          sinceTag: ${{ steps.metada.outputs.previousTag }}
+          sinceTag: ${{ steps.metadata.outputs.previousTag }}
 
       - name: Build and push
         uses: docker/build-push-action@v5
@@ -78,6 +84,7 @@ jobs:
           labels: ${{ steps.dockerMetadata.outputs.labels }}
 
       - name: Release
+        if: steps.metadata.outputs.releaseBinary == 'true'
         uses: softprops/action-gh-release@v1
         with:
           body_path: CHANGELOG.md
