@@ -1,0 +1,14 @@
+name: Changelog
+on:
+  push:
+    branches:
+      - feature/changelog
+
+jobs:
+  changelog:
+    runs-on: ubuntu-22.04
+    steps:
+      - name: '✏️ Generate release changelog'
+        uses: heinrichreimer/action-github-changelog-generator@v2.3
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
