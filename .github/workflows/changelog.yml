@@ -18,7 +18,7 @@ jobs:
           git fetch --tags
           previousTag=$(git tag --sort=-v:refname | tail -n +2 | head -n 1)
           echo "$previousTag"
-          echo "$previousTag" >> "$GITHUB_OUTPUT"
+          echo "previousTag=$previousTag" >> "$GITHUB_OUTPUT"
       - name: '✏️ Generate release changelog'
         uses: heinrichreimer/action-github-changelog-generator@v2.3
         with:
