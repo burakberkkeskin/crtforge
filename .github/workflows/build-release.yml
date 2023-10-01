@@ -16,7 +16,20 @@ jobs:
         with:
           go-version: 1.21
 
-      - name: Build
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v1
+
+      - name: Set up Docker Buildx
+        id: buildx
+        uses: docker/setup-buildx-action@v1
+
+      - name: Login to Docker Hub
+        uses: docker/login-action@v1
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Binary Build
         run: |
           version=$(git describe --tags --abbrev=0)
           commitId=$(git rev-parse --short $version)
@@ -25,6 +38,7 @@ jobs:
           GOOS=darwin GOARCH=amd64 go build -ldflags "-X crtforge/cmd.version=$version -X crtforge/cmd.commitId=$commitId" -o crtforge-Darwin-x86_64 -v . 
           GOOS=darwin GOARCH=arm64 go build -ldflags "-X crtforge/cmd.version=$version -X crtforge/cmd.commitId=$commitId" -o crtforge-Darwin-arm64 -v .
 
+<<<<<<< Updated upstream
       - name: 'Get Previous Tag'
         id: previousTag
         run: |
@@ -39,6 +53,16 @@ jobs:
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           sinceTag: ${{ steps.previousTag.outputs.previousTag }}
+=======
+      - name: Build and push
+        uses: docker/build-push-action@v2
+        with:
+          context: .
+          platforms: linux/amd64,linux/arm/v7
+          push: true
+          tags: ${{ steps.<meta_id>.outputs.tags }}
+          labels: ${{ steps.<meta_id>.outputs.labels }}
+>>>>>>> Stashed changes
 
       - name: Release
         uses: softprops/action-gh-release@v1
