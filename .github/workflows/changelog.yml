@@ -15,7 +15,7 @@ jobs:
         run:
           previousTag=$(git for-each-ref --sort=-taggerdate --format '%(refname:short)' refs/tags | sort -r | sed -n 2p)
           echo "$previousTag"
-          echo "$previousTag" >> $GITHUB_OUTPUT
+          echo "$previousTag" >> "$GITHUB_OUTPUT"
       - name: '✏️ Generate release changelog'
         uses: heinrichreimer/action-github-changelog-generator@v2.3
         with:
