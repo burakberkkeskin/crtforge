@@ -61,7 +61,11 @@ total 24
 
 ## Building From Source
 
-You can build the crtforge on your own machine. To build, run the commands below:
+You can build the crtforge on your own machine.
+
+To build, you should have go installed on your machine.
+
+To build, run the commands below:
 
 ```bash
 git clone https://github.com/safderun/crtforge.git && \
