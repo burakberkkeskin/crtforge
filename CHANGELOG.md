@@ -1,66 +1,14 @@
 # Changelog
 
-## [Unreleased](https://github.com/safderun/crtforge/tree/HEAD)
+## [v1.4.6](https://github.com/safderun/crtforge/tree/v1.4.6) (2023-10-01)
 
-[Full Changelog](https://github.com/safderun/crtforge/compare/v1.4.5...HEAD)
+[Full Changelog](https://github.com/safderun/crtforge/compare/v1.4.5...v1.4.6)
 
 **Merged pull requests:**
 
 - Changed Private Key Generation Method [\#4](https://github.com/safderun/crtforge/pull/4) ([safderun](https://github.com/safderun))
 - Develop [\#3](https://github.com/safderun/crtforge/pull/3) ([safderun](https://github.com/safderun))
 - Some pipeline demos [\#1](https://github.com/safderun/crtforge/pull/1) ([safderun](https://github.com/safderun))
-
-## [v1.4.5](https://github.com/safderun/crtforge/tree/v1.4.5) (2023-09-25)
-
-[Full Changelog](https://github.com/safderun/crtforge/compare/v1.4.4...v1.4.5)
-
-## [v1.4.4](https://github.com/safderun/crtforge/tree/v1.4.4) (2023-09-25)
-
-[Full Changelog](https://github.com/safderun/crtforge/compare/v1.4.3...v1.4.4)
-
-## [v1.4.3](https://github.com/safderun/crtforge/tree/v1.4.3) (2023-09-25)
-
-[Full Changelog](https://github.com/safderun/crtforge/compare/v1.4.2...v1.4.3)
-
-## [v1.4.2](https://github.com/safderun/crtforge/tree/v1.4.2) (2023-09-25)
-
-[Full Changelog](https://github.com/safderun/crtforge/compare/v1.4.1...v1.4.2)
-
-## [v1.4.1](https://github.com/safderun/crtforge/tree/v1.4.1) (2023-08-26)
-
-[Full Changelog](https://github.com/safderun/crtforge/compare/v1.4.0...v1.4.1)
-
-## [v1.4.0](https://github.com/safderun/crtforge/tree/v1.4.0) (2023-08-24)
-
-[Full Changelog](https://github.com/safderun/crtforge/compare/v1.3.2...v1.4.0)
-
-## [v1.3.2](https://github.com/safderun/crtforge/tree/v1.3.2) (2023-08-24)
-
-[Full Changelog](https://github.com/safderun/crtforge/compare/v1.3.1...v1.3.2)
-
-## [v1.3.1](https://github.com/safderun/crtforge/tree/v1.3.1) (2023-08-23)
-
-[Full Changelog](https://github.com/safderun/crtforge/compare/v1.3.0...v1.3.1)
-
-## [v1.3.0](https://github.com/safderun/crtforge/tree/v1.3.0) (2023-08-23)
-
-[Full Changelog](https://github.com/safderun/crtforge/compare/v1.2.1...v1.3.0)
-
-## [v1.2.1](https://github.com/safderun/crtforge/tree/v1.2.1) (2023-08-22)
-
-[Full Changelog](https://github.com/safderun/crtforge/compare/v1.2.0...v1.2.1)
-
-## [v1.2.0](https://github.com/safderun/crtforge/tree/v1.2.0) (2023-08-21)
-
-[Full Changelog](https://github.com/safderun/crtforge/compare/v1.1.0...v1.2.0)
-
-## [v1.1.0](https://github.com/safderun/crtforge/tree/v1.1.0) (2023-08-19)
-
-[Full Changelog](https://github.com/safderun/crtforge/compare/v1.0.0...v1.1.0)
-
-## [v1.0.0](https://github.com/safderun/crtforge/tree/v1.0.0) (2023-08-18)
-
-[Full Changelog](https://github.com/safderun/crtforge/compare/f33145c58707f9e68ea2e27af734a3a9e4c2e344...v1.0.0)
 
 
 

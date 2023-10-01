@@ -8,9 +8,13 @@ jobs:
   changelog:
     runs-on: ubuntu-22.04
     steps:
+      - name: 'Get Previous Tag'
+        id: previousTag
+        run: echo "previousTag=$(git for-each-ref --sort=-taggerdate --format '%(refname:short)' refs/tags | sort -r | sed -n 2p)" >> $GITHUB_OUTPUT
       - name: '✏️ Generate release changelog'
         uses: heinrichreimer/action-github-changelog-generator@v2.3
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
+          sinceTag: ${{ steps.previousTag.outputs.previousTag }}
       - name: ' Write the changelog'
         run: cat CHANGELOG.md
