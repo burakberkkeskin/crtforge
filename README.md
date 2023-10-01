@@ -59,6 +59,18 @@ total 24
 >
 > You can use the `fullchain.crt` `myApp.key` in web servers like nginx, apache or mock servers.
 
+## Building From Source
+
+You can build the crtforge on your own machine. To build, run the commands below:
+
+```bash
+git clone https://github.com/safderun/crtforge.git && \
+  cd crtforge && \
+  version=$(git describe --tags --abbrev=0) && \
+  commitId=$(git rev-parse --short $version) && \
+  go build -ldflags "-X crtforge/cmd.version=$version -X crtforge/cmd.commitId=$commitId" -o crtforge -v .
+```
+
 ## Trusting Self Signed Root CA
 
 By default, if you create a web server with the fullchain cert, and make a http request, you will get self signed cert error.
