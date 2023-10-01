@@ -13,7 +13,10 @@ jobs:
       - name: 'Get Previous Tag'
         id: previousTag
         run: |
-          previousTag=$(git for-each-ref --sort=-taggerdate --format '%(refname:short)' refs/tags | sort -r | sed -n 2p)
+          git config user.name "GitHub Actions"
+          git config user.email "actions@github.com"
+          git fetch --tags
+          previousTag=$(git tag --sort=-v:refname | tail -n +2 | head -n 1)
           echo "$previousTag"
           echo "$previousTag" >> "$GITHUB_OUTPUT"
       - name: '✏️ Generate release changelog'
