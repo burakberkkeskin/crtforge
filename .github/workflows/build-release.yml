@@ -25,9 +25,25 @@ jobs:
           GOOS=darwin GOARCH=amd64 go build -ldflags "-X crtforge/cmd.version=$version -X crtforge/cmd.commitId=$commitId" -o crtforge-Darwin-x86_64 -v . 
           GOOS=darwin GOARCH=arm64 go build -ldflags "-X crtforge/cmd.version=$version -X crtforge/cmd.commitId=$commitId" -o crtforge-Darwin-arm64 -v .
 
+      - name: 'Get Previous Tag'
+        id: previousTag
+        run: |
+          git config user.name "GitHub Actions"
+          git config user.email "actions@github.com"
+          git fetch --tags
+          previousTag=$(git tag --sort=-v:refname | tail -n +2 | head -n 1)
+          echo "previousTag=$previousTag" >> "$GITHUB_OUTPUT"
+
+      - name: '✏️ Generate release changelog'
+        uses: heinrichreimer/action-github-changelog-generator@v2.3
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          sinceTag: ${{ steps.previousTag.outputs.previousTag }}
+
       - name: Release
         uses: softprops/action-gh-release@v1
         with:
+          body_path: CHANGELOG.md
           files: |
             crtforge-Linux-x86_64
             crtforge-Linux-arm64
