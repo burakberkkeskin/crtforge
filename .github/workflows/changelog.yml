@@ -12,7 +12,7 @@ jobs:
         uses: actions/checkout@v4
       - name: 'Get Previous Tag'
         id: previousTag
-        run:
+        run: |
           previousTag=$(git for-each-ref --sort=-taggerdate --format '%(refname:short)' refs/tags | sort -r | sed -n 2p)
           echo "$previousTag"
           echo "$previousTag" >> "$GITHUB_OUTPUT"
