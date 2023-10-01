@@ -2,7 +2,11 @@ package services
 
 import (
 	"bytes"
+	"crypto/rand"
+	"crypto/rsa"
+	"crypto/x509"
 	_ "embed"
+	"encoding/pem"
 	"html/template"
 	"os"
 	"os/exec"
@@ -31,12 +35,28 @@ func CreateIntermediateCa(CaDir string, intermediateCaName string, rootCaCnf str
 	intermediateCaKeyFile := intermediateCaDir + "/intermediateCA.key"
 	if _, err := os.Stat(intermediateCaKeyFile); os.IsNotExist(err) {
 		log.Debug("Intermediate CA Key is being created.")
-		createIntermediateCaKeyCmd := exec.Command("openssl", "genrsa", "-out", intermediateCaKeyFile, "4096")
-		createIntermediateCaKeyCmd.Dir = intermediateCaDir
-		err = createIntermediateCaKeyCmd.Run()
+		caPrivKey, err := rsa.GenerateKey(rand.Reader, 4096)
 		if err != nil {
-			log.Fatal(err)
+			log.Error(err)
 		}
+
+		// Encode the private key to PEM format
+		privKeyBytes := x509.MarshalPKCS1PrivateKey(caPrivKey)
+		privKeyPEM := &pem.Block{
+			Type:  "RSA PRIVATE KEY",
+			Bytes: privKeyBytes,
+		}
+
+		file, err := os.Create(intermediateCaKeyFile)
+		if err != nil {
+			panic(err)
+		}
+		defer file.Close()
+		err = pem.Encode(file, privKeyPEM)
+		if err != nil {
+			panic(err)
+		}
+
 		log.Debug("Intermediate CA Key generated at ", intermediateCaKeyFile)
 	} else {
 		log.Debug("Intermediate CA Key already exists, skipping.")

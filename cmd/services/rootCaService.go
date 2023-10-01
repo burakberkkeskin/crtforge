@@ -31,9 +31,10 @@ func CreateRootCa(CaDir string) (string, string, string) {
 		log.Debug("Root CA dir already exists, skipping.")
 	}
 
-	// Create rootCA key with openssl
+	// Create rootCA key
 	rootCaKeyFile := rootCaDir + "/rootCA.key"
 	if _, err := os.Stat(rootCaKeyFile); os.IsNotExist(err) {
+		log.Debug("Root CA Key is being created.")
 		caPrivKey, err := rsa.GenerateKey(rand.Reader, 4096)
 		if err != nil {
 			log.Error(err)
@@ -53,6 +54,7 @@ func CreateRootCa(CaDir string) (string, string, string) {
 		if err != nil {
 			panic(err)
 		}
+		log.Debug("Root CA Key generated at ", rootCaKeyFile)
 	} else {
 		log.Debug("Root CA Key already exists, skipping.")
 	}
