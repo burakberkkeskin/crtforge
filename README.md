@@ -95,7 +95,7 @@ crtforge -r medical backend api.example.com auth.example.com
 > If you plan to use the app certs for long time for example on-prem home lab apps, create them with same root ca and trust only that root ca.
 > So you don't need to trust all app certs one by one.
 
-## Background
+## Background
 
 When you run the cli application without `--rootCa` flag, it creates a `default` in $HOME/.config/crtforge.
 
