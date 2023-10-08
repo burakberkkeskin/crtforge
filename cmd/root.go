@@ -23,7 +23,7 @@ var commitId = "abcd"
 
 // rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
-	Use:     "crtforge",
+	Use:     "crtforge webapp app.example.com",
 	Short:   "Be a local cert authority",
 	Long:    `With crtforge, you can create root, intermediate and application ca.`,
 	Version: version + " " + commitId,
@@ -32,6 +32,11 @@ var rootCmd = &cobra.Command{
 }
 
 func rootRun(cmd *cobra.Command, args []string) {
+	if len(args) == 0 {
+		log.Error("No argument provided.")
+		log.Fatal("Please run crtforge --help for example usage.")
+	}
+
 	appName := args[0]
 	appDomains := args[1:]
 
