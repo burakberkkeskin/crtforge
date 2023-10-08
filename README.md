@@ -10,6 +10,8 @@ Crtforge is a cli tool which can generate a full chain self signed ssl certific
 
 ## Install Crtforge
 
+### Install Locally (Recommended)
+
 The binaries can be downloaded from the release page.
 
 Simply execute the following commands to install crtforge on Linux and macOS:
@@ -18,6 +20,17 @@ Simply execute the following commands to install crtforge on Linux and macOS:
 sudo curl -L -o /usr/bin/crtforge https://github.com/safderun/crtForge/releases/latest/download/crtforge-$(uname -s)-$(uname -m) && \
 sudo chmod +x /usr/bin/crtforge
 ```
+
+### Run With Docker
+
+You don't need to install crtforge. You can create a alias and use crtforge almost like the same.
+
+```bash
+alias crtforge="docker run -it --rm -v "$HOME/.config":/root/.config safderun/crtforge:latest" && \
+crtforge --version
+```
+
+You should see the version of the crtforge container.
 
 ## Quick Start
 
