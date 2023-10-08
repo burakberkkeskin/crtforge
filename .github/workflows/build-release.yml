@@ -47,6 +47,7 @@ jobs:
           echo "version=$version" >> "$GITHUB_OUTPUT"
           echo "commitId=$commitId" >> "$GITHUB_OUTPUT"
           echo "releaseBinary=$releaseBinary" >> "$GITHUB_OUTPUT"
+          echo "test"
 
       - name: 'Docker Metadata'
         id: dockerMetadata
