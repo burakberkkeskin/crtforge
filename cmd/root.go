@@ -23,7 +23,7 @@ var commitId = "abcd"
 
 // rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
-	Use:     "crtforge",
+	Use:     "crtforge webapp app.example.com",
 	Short:   "Be a local cert authority",
 	Long:    `With crtforge, you can create root, intermediate and application ca.`,
 	Version: version + " " + commitId,
