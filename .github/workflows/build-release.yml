@@ -34,7 +34,7 @@ jobs:
         run: |
           git config user.name "GitHub Actions"
           git config user.email "actions@github.com"
-          git fetch --tags
+          git fetch --tags --force
           previousTag=$(git tag --sort=-v:refname | grep -v '\-beta' | grep -v '\-alpha' | head -n 1 | tail -n 1)
           version=$(git describe --tags --abbrev=0)
           commitId=$(git rev-parse --short $version)
