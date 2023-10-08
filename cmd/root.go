@@ -32,6 +32,11 @@ var rootCmd = &cobra.Command{
 }
 
 func rootRun(cmd *cobra.Command, args []string) {
+	if len(args) == 0 {
+		log.Error("No argument provided.")
+		log.Fatal("Please run crtforge --help for example usage.")
+	}
+
 	appName := args[0]
 	appDomains := args[1:]
 
