@@ -15,5 +15,6 @@ RUN go build -ldflags "-X crtforge/cmd.version=$version -X crtforge/cmd.commitId
 FROM alpine:3.18.4 as runner
 RUN apk add openssl --no-cache
 COPY --from=builder /app/crtforge /crtforge
+ENV CONTAINER true
 ENTRYPOINT [ "/crtforge" ]
 
