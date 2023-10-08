@@ -166,6 +166,12 @@ func CreateAppCrt(defaultCADir string, intermediateCaCnf string, intermediateCaC
 	log.Info("App name: ", appName)
 	log.Info("Domains: ", altNames)
 	log.Info("To see your cert files, please check the dir: ", appCrtDir)
+	if os.Getenv("CONTAINER") == "true" {
+		log.Warn("You are running the crtforge from container.")
+		log.Info("The paths you see in the logs is not valid.")
+		log.Info("You should replace /root with your own home directory.")
+		log.Info("For example /root/.config/crtforge /home/user/.config/crtforge")
+	}
 }
 
 func prepareAppCnf(appName string, commonName string, altNames []string) ([]byte, error) {
