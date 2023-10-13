@@ -15,7 +15,7 @@ import (
 //go:embed appCnf.tmpl
 var applicationCnf []byte
 
-func CreateAppCrt(defaultCADir string, intermediateCaCnf string, intermediateCaCrt string, intermediateCaKey string, rootCaCrt string, appName string, commonName string, altNames []string) {
+func CreateAppCrt(defaultCADir string, intermediateCaCnf string, intermediateCaCrt string, intermediateCaKey string, rootCaCrt string, appName string, commonName string, altNames []string, p12 bool) {
 	// Create app directory if not exists:
 	appCrtDir := defaultCADir + "/" + appName
 	if _, err := os.Stat(appCrtDir); os.IsNotExist(err) {
@@ -161,6 +161,28 @@ func CreateAppCrt(defaultCADir string, intermediateCaCnf string, intermediateCaC
 		log.Debug("App Fullchain crt generated at ", applicationCrtFile)
 	} else {
 		log.Debug("App fullchain crt already exits, skipping.")
+	}
+	applicationPfxFile := appCrtDir + "/" + appName + ".pfx"
+	if _, err := os.Stat(applicationPfxFile); os.IsNotExist(err) {
+		if p12 {
+			log.Debug("Creating p12 files.")
+			createAppCrtCmd := exec.Command(
+				"openssl", "pkcs12",
+				"-in", appFullchainCrtFile,
+				"-inkey", applicationKeyFile,
+				"-password", "pass:changeit",
+				"-export",
+				"-out", applicationPfxFile,
+			)
+			createAppCrtCmd.Dir = appCrtDir
+			err = createAppCrtCmd.Run()
+			if err != nil {
+				log.Fatal("Error while creating App Crt: ", err)
+			}
+			log.Debug("App Pfx generated at ", applicationCrtFile)
+		}
+	} else {
+		log.Debug("App pfx already exits, skipping.")
 	}
 	log.Info("App certs created successfully.")
 	log.Info("App name: ", appName)

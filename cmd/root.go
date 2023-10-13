@@ -17,6 +17,7 @@ import (
 var caName string
 var intermediateCaName string
 var trustRootCrt bool
+var pfx bool
 
 var version = "v1.0.0"
 var commitId = "abcd"
@@ -57,7 +58,7 @@ func rootRun(cmd *cobra.Command, args []string) {
 
 	defaultCAIntermediateCACrt, defaultCAIntermediateCACnf, defaultCAIntermediateCAkey := services.CreateIntermediateCa(defaultCADir, intermediateCaName, defaultCARootCACnf)
 
-	services.CreateAppCrt(defaultCADir, defaultCAIntermediateCACnf, defaultCAIntermediateCACrt, defaultCAIntermediateCAkey, defaultCARootCACrt, appName, appDomains[0], appDomains)
+	services.CreateAppCrt(defaultCADir, defaultCAIntermediateCACnf, defaultCAIntermediateCACrt, defaultCAIntermediateCAkey, defaultCARootCACrt, appName, appDomains[0], appDomains, pfx)
 }
 
 func createConfigDir(configDir string) {
@@ -95,6 +96,9 @@ func init() {
 
 	// Select custom root ca
 	rootCmd.Flags().StringVarP(&caName, "root-ca", "r", "default", "Set CA Name.")
+
+	// Select if you want pfx file
+	rootCmd.Flags().BoolVarP(&pfx, "pfx", "p", false, "Create pfx file.")
 
 	// Select custom intermediate ca
 	rootCmd.Flags().StringVarP(&intermediateCaName, "intermediate-ca", "i", "intermediateCA", "Set Intermediate CA Name.")
