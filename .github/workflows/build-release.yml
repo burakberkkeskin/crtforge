@@ -61,10 +61,11 @@ jobs:
 
       - name: Binary Build
         run: |
-          go build -ldflags "-X crtforge/cmd.version=$version -X crtforge/cmd.commitId=$commitId" -o crtforge-Linux-x86_64 -v .
-          GOOS=linux GOARCH=arm64 go build -ldflags "-X crtforge/cmd.version=$version -X crtforge/cmd.commitId=$commitId" -o crtforge-Linux-arm64 -v .
-          GOOS=darwin GOARCH=amd64 go build -ldflags "-X crtforge/cmd.version=$version -X crtforge/cmd.commitId=$commitId" -o crtforge-Darwin-x86_64 -v . 
-          GOOS=darwin GOARCH=arm64 go build -ldflags "-X crtforge/cmd.version=$version -X crtforge/cmd.commitId=$commitId" -o crtforge-Darwin-arm64 -v .
+          mkdir build
+          CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -ldflags "-X crtforge/cmd.version=$version -X crtforge/cmd.commitId=$commitId" -o build/crtforge-Linux-x86_64 -v .
+          CGO_ENABLED=0 GOOS=linux GOARCH=arm64 go build -ldflags "-X crtforge/cmd.version=$version -X crtforge/cmd.commitId=$commitId" -o build/crtforge-Linux-arm64 -v .
+          CGO_ENABLED=0 GOOS=darwin GOARCH=amd64 go build -ldflags "-X crtforge/cmd.version=$version -X crtforge/cmd.commitId=$commitId" -o build/crtforge-Darwin-x86_64 -v . 
+          CGO_ENABLED=0 GOOS=darwin GOARCH=arm64 go build -ldflags "-X crtforge/cmd.version=$version -X crtforge/cmd.commitId=$commitId" -o build/crtforge-Darwin-arm64 -v .
         env:
           version: ${{ steps.metadata.outputs.version }}
           commitId: ${{ steps.metadata.outputs.commitId }}
@@ -75,16 +76,29 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
           sinceTag: ${{ steps.metadata.outputs.previousTag }}
 
-      - name: Container Image Build and push
+      - name: Container Image Build and push amd64
         uses: docker/build-push-action@v5
         with:
           context: .
-          platforms: linux/amd64,linux/arm64
+          platforms: linux/amd64
           push: true
           tags: ${{ steps.dockerMetadata.outputs.tags }}
           labels: ${{ steps.dockerMetadata.outputs.labels }}
-          cache-from: type=registry,ref=safderun/crtforge:buildcache
-          cache-to: type=registry,ref=safderun/crtforge:buildcache,mode=max
+          file: Dockerfile.production
+          build-args: |
+            binary=build/crtforge-Linux-x86_64
+
+      - name: Container Image Build and push arm64
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          platforms: linux/arm64
+          push: true
+          tags: ${{ steps.dockerMetadata.outputs.tags }}
+          labels: ${{ steps.dockerMetadata.outputs.labels }}
+          file: Dockerfile.production
+          build-args: |
+            binary=build/crtforge-Linux-arm64
 
       - name: Release
         if: steps.metadata.outputs.releaseBinary == 'true'
@@ -92,7 +106,7 @@ jobs:
         with:
           body_path: CHANGELOG.md
           files: |
-            crtforge-Linux-x86_64
-            crtforge-Linux-arm64
-            crtforge-Darwin-x86_64
-            crtforge-Darwin-arm64
+            build/crtforge-Linux-x86_64
+            build/crtforge-Linux-arm64
+            build/crtforge-Darwin-x86_64
+            build/crtforge-Darwin-arm64
