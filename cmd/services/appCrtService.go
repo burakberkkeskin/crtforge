@@ -211,6 +211,8 @@ func CreateAppCrt(defaultCADir string, intermediateCaCnf string, intermediateCaC
 				panic(err)
 			}
 		}
+	} else {
+		log.Debug("App pfx already exits, skipping.")
 	}
 	log.Info("App certs created successfully.")
 	log.Info("App name: ", appName)
