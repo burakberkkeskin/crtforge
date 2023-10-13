@@ -2,17 +2,12 @@ package services
 
 import (
 	"bytes"
-	"crypto/rand"
-	"crypto/x509"
 	_ "embed"
-	"encoding/pem"
 	"fmt"
 	"html/template"
 	"os"
 	"os/exec"
 	"strings"
-
-	"software.sslmate.com/src/go-pkcs12"
 
 	log "github.com/sirupsen/logrus"
 )
@@ -171,45 +166,20 @@ func CreateAppCrt(defaultCADir string, intermediateCaCnf string, intermediateCaC
 	if _, err := os.Stat(applicationPfxFile); os.IsNotExist(err) {
 		if p12 {
 			log.Debug("Creating p12 files.")
-			crtBytes, err := os.ReadFile(applicationCrtFile)
+			createAppCrtCmd := exec.Command(
+				"openssl", "pkcs12",
+				"-in", appFullchainCrtFile,
+				"-inkey", applicationKeyFile,
+				"-password", "pass:changeit",
+				"-export",
+				"-out", applicationPfxFile,
+			)
+			createAppCrtCmd.Dir = appCrtDir
+			err = createAppCrtCmd.Run()
 			if err != nil {
-				panic(err)
+				log.Fatal("Error while creating App Crt: ", err)
 			}
-
-			keyBytes, err := os.ReadFile(applicationKeyFile)
-			if err != nil {
-				panic(err)
-			}
-
-			crtBlock, _ := pem.Decode(crtBytes)
-			if crtBlock == nil {
-				panic("Failed to decode certificate")
-			}
-
-			keyBlock, _ := pem.Decode(keyBytes)
-			if keyBlock == nil {
-				panic("Failed to decode private key")
-			}
-
-			crt, err := x509.ParseCertificate(crtBlock.Bytes)
-			if err != nil {
-				panic(err)
-			}
-
-			key, err := x509.ParsePKCS8PrivateKey(keyBlock.Bytes)
-			if err != nil {
-				panic(err)
-			}
-
-			pfxBytes, err := pkcs12.Encode(rand.Reader, key, crt, []*x509.Certificate{}, "changeit")
-			if err != nil {
-				panic(err)
-			}
-
-			err = os.WriteFile(applicationPfxFile, pfxBytes, 0644)
-			if err != nil {
-				panic(err)
-			}
+			log.Debug("App Pfx generated at ", applicationCrtFile)
 		}
 	} else {
 		log.Debug("App pfx already exits, skipping.")
