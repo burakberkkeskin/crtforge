@@ -4,4 +4,3 @@ crtforge
 .gitignore
 .github
 .git
-build/**
