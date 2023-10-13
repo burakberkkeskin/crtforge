@@ -10,4 +10,9 @@ require (
 	github.com/spf13/pflag v1.0.5 // indirect
 )
 
-require golang.org/x/sys v0.0.0-20220715151400-c0bba94af5f8 // indirect
+require (
+	golang.org/x/crypto v0.14.0
+	golang.org/x/sys v0.13.0 // indirect
+)
+
+require software.sslmate.com/src/go-pkcs12 v0.2.1 // indirect

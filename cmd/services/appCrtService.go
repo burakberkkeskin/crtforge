@@ -2,12 +2,17 @@ package services
 
 import (
 	"bytes"
+	"crypto/rand"
+	"crypto/x509"
 	_ "embed"
+	"encoding/pem"
 	"fmt"
 	"html/template"
 	"os"
 	"os/exec"
 	"strings"
+
+	"software.sslmate.com/src/go-pkcs12"
 
 	log "github.com/sirupsen/logrus"
 )
@@ -15,7 +20,7 @@ import (
 //go:embed appCnf.tmpl
 var applicationCnf []byte
 
-func CreateAppCrt(defaultCADir string, intermediateCaCnf string, intermediateCaCrt string, intermediateCaKey string, rootCaCrt string, appName string, commonName string, altNames []string) {
+func CreateAppCrt(defaultCADir string, intermediateCaCnf string, intermediateCaCrt string, intermediateCaKey string, rootCaCrt string, appName string, commonName string, altNames []string, p12 bool) {
 	// Create app directory if not exists:
 	appCrtDir := defaultCADir + "/" + appName
 	if _, err := os.Stat(appCrtDir); os.IsNotExist(err) {
@@ -161,6 +166,51 @@ func CreateAppCrt(defaultCADir string, intermediateCaCnf string, intermediateCaC
 		log.Debug("App Fullchain crt generated at ", applicationCrtFile)
 	} else {
 		log.Debug("App fullchain crt already exits, skipping.")
+	}
+	applicationPfxFile := appCrtDir + "/" + appName + ".pfx"
+	if _, err := os.Stat(applicationPfxFile); os.IsNotExist(err) {
+		if p12 {
+			log.Debug("Creating p12 files.")
+			crtBytes, err := os.ReadFile(applicationCrtFile)
+			if err != nil {
+				panic(err)
+			}
+
+			keyBytes, err := os.ReadFile(applicationKeyFile)
+			if err != nil {
+				panic(err)
+			}
+
+			crtBlock, _ := pem.Decode(crtBytes)
+			if crtBlock == nil {
+				panic("Failed to decode certificate")
+			}
+
+			keyBlock, _ := pem.Decode(keyBytes)
+			if keyBlock == nil {
+				panic("Failed to decode private key")
+			}
+
+			crt, err := x509.ParseCertificate(crtBlock.Bytes)
+			if err != nil {
+				panic(err)
+			}
+
+			key, err := x509.ParsePKCS8PrivateKey(keyBlock.Bytes)
+			if err != nil {
+				panic(err)
+			}
+
+			pfxBytes, err := pkcs12.Encode(rand.Reader, key, crt, []*x509.Certificate{}, "changeit")
+			if err != nil {
+				panic(err)
+			}
+
+			err = os.WriteFile(applicationPfxFile, pfxBytes, 0644)
+			if err != nil {
+				panic(err)
+			}
+		}
 	}
 	log.Info("App certs created successfully.")
 	log.Info("App name: ", appName)
