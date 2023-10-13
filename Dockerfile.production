@@ -1,0 +1,8 @@
+FROM alpine:3.18.4 as runner
+RUN apk add openssl --no-cache
+
+ARG binary
+COPY ${binary} /
+
+ENV CONTAINER true
+ENTRYPOINT [ "/crtforge" ]
