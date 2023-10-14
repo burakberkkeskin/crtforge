@@ -1,6 +1,6 @@
 ![image](https://github.com/safderun/crtforge/assets/58513283/59198e2d-abd3-4f29-bd4c-a0a3f160c8b8)
 
-## Overview
+## 🔒 Overview
 
 Crtforge is a cli tool which can generate a full chain self signed ssl certificate that includes root, intermediate, and application certificates.
 
@@ -27,6 +27,8 @@ Crtforge is a cli tool which can generate a full chain self signed ssl certific
 - [Create Custom Root CA](#create-custom-root-ca)
 
 - [Create Custom Intermediate CA](#create-custom-intermediate-ca)
+
+- [Create PFX Certificate](#create-pfx-certificate)
 
 ## Install Crtforge
 
@@ -70,7 +72,7 @@ git clone https://github.com/safderun/crtforge.git && \
 
 ## Quick Start
 
-- You can create the fullchain cert within a second:
+📄 You can create the fullchain certificate within a second:
 
 ```bash
 $ crtforge myApp api.myapp.com app.myapp.com
@@ -81,7 +83,20 @@ Domains: [api.myapp.com app.myapp.com]
 To see your cert files, please check the dir: /home/ubuntu/.config/crtforge/default/myApp
 ```
 
-- 🎉 Ta-Da Your certs are ready.
+⭐ You can also create a certificate with wildcard domain:
+
+⚠️ Please place your domain between double quotes ("example.com") like the example below.
+
+```bash
+$ ./crtforge mySecondApp "*.example.com"
+
+App certs created successfully.
+App name: app8
+Domains: [*.example.com]
+To see your cert files, please check the dir: /home/ubuntu/.config/crtforge/testing/app8
+```
+
+🎉 Ta-Da Your certs are ready.
 
 ```bash
 $ ls -l $HOME/.config/crtforge/default/myApp
@@ -94,19 +109,7 @@ total 24
 -rw------- 1 ubuntu ubuntu 1704 Aug 18 23:06 myApp.key
 ```
 
-> :information_source: Files and Meanings
->
-> You will probably use `fullchain.crt` `myApp.crt` `myApp.key`
->
-> File named `fullchain.crt` contains myApp.crt, intermediateCa.crt and rootCa.crt
->
-> File named `myApp.crt` contains the public ssl cert.
->
-> File named `myApp.key` contains the private ssl key. Keep it secret!
-
-> :information_source: Usage
->
-> You can use the `fullchain.crt` `myApp.key` in web servers like nginx, apache or mock servers.
+You can use the `fullchain.crt` `myApp.key` in web servers like nginx, apache or mock servers.
 
 ## Trusting Self Signed Root CA
 
@@ -235,4 +238,22 @@ Root CA ("MedicalCompany")
   |            |
   |            |-- myfinancecompany.com
   |            |-- app.myfinancecompany.com
+```
+
+## Create PFX Certificate
+
+If you want to create certificate also in pfx format, you can add add --pfx or -p flag to your command.
+
+The pfx password is hardcoded and it's "changeit".
+
+- If you want to create a PFX certificate under default root CA:
+
+```bash
+crtforge gitlab gitlab.example.com --pfx
+```
+
+- If you want to create a PFX certificate under custom root and intermediate CA:
+
+```bash
+crtforge --root-ca git-providers --intermediate-ca engineer azure azure.example.com
 ```
