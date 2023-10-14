@@ -8,6 +8,26 @@ Crtforge is a cli tool which can generate a full chain self signed ssl certific
 
 👉🏻 For development purposes, you can easily generate a large number of full-chain certificates.
 
+## 📖 Table of Contents
+
+- [Installation](#install-crtforge)
+
+  - [Install Locally (Recommended)](#install-locally-recommended)
+
+  - [Run With Docker](#run-with-docker)
+
+  - [Building From Source](#building-from-source)
+
+- [Quick Start](#quick-start)
+
+- [Trust The Root Cert](#trusting-self-signed-root-ca)
+
+- [Config Directory Structure](#config-file-structure)
+
+- [Create Custom Root CA](#create-custom-root-ca)
+
+- [Create Custom Intermediate CA](#create-custom-intermediate-ca)
+
 ## Install Crtforge
 
 ### Install Locally (Recommended)
@@ -31,6 +51,22 @@ crtforge --version
 ```
 
 You should see the version of the crtforge container.
+
+### Building From Source
+
+You can build the crtforge on your own machine.
+
+To build, you should have go installed on your machine.
+
+To build, run the commands below:
+
+```bash
+git clone https://github.com/safderun/crtforge.git && \
+  cd crtforge && \
+  version=$(git describe --tags --abbrev=0) && \
+  commitId=$(git rev-parse --short $version) && \
+  go build -ldflags "-X crtforge/cmd.version=$version -X crtforge/cmd.commitId=$commitId" -o crtforge -v .
+```
 
 ## Quick Start
 
@@ -72,22 +108,6 @@ total 24
 >
 > You can use the `fullchain.crt` `myApp.key` in web servers like nginx, apache or mock servers.
 
-## Building From Source
-
-You can build the crtforge on your own machine.
-
-To build, you should have go installed on your machine.
-
-To build, run the commands below:
-
-```bash
-git clone https://github.com/safderun/crtforge.git && \
-  cd crtforge && \
-  version=$(git describe --tags --abbrev=0) && \
-  commitId=$(git rev-parse --short $version) && \
-  go build -ldflags "-X crtforge/cmd.version=$version -X crtforge/cmd.commitId=$commitId" -o crtforge -v .
-```
-
 ## Trusting Self Signed Root CA
 
 By default, if you create a web server with the fullchain cert, and make a http request, you will get self signed cert error.
@@ -108,7 +128,7 @@ crtforge -r medical backend api.example.com auth.example.com
 > If you plan to use the app certs for long time for example on-prem home lab apps, create them with same root ca and trust only that root ca.
 > So you don't need to trust all app certs one by one.
 
-## Background
+## Config File Structure
 
 When you run the cli application without `--rootCa` flag, it creates a `default` in $HOME/.config/crtforge.
 
@@ -118,7 +138,7 @@ And last, your application's cert files are being created under the a folder nam
 
 You can create multiple application certs under same rootCA.
 
-## Custom Root CA
+## Create Custom Root CA
 
 If you need a brand new chain, you can create a new rootCA with `--rootCa` flag.
 
@@ -134,7 +154,7 @@ The folder structure is same as default.
 
 You can get the application certificates under `$HOME/.config/crtforge/customRootCa/myApp`
 
-## Custom Intermediate CA
+## Create Custom Intermediate CA
 
 #### Under Default Root CA
 
