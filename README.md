@@ -1,12 +1,34 @@
 ![image](https://github.com/safderun/crtforge/assets/58513283/59198e2d-abd3-4f29-bd4c-a0a3f160c8b8)
 
-## Overview
+## 🔒 Overview
 
 Crtforge is a cli tool which can generate a full chain self signed ssl certificate that includes root, intermediate, and application certificates.
 
 👉🏻 You can act as your own local certificate authority for self-hosted home lab apps. Just create a series of application certs under the same root CA.
 
 👉🏻 For development purposes, you can easily generate a large number of full-chain certificates.
+
+## 📖 Table of Contents
+
+- [Installation](#install-crtforge)
+
+  - [Install Locally (Recommended)](#install-locally-recommended)
+
+  - [Run With Docker](#run-with-docker)
+
+  - [Building From Source](#building-from-source)
+
+- [Quick Start](#quick-start)
+
+- [Trust The Root Cert](#trusting-self-signed-root-ca)
+
+- [Config Directory Structure](#config-file-structure)
+
+- [Create Custom Root CA](#create-custom-root-ca)
+
+- [Create Custom Intermediate CA](#create-custom-intermediate-ca)
+
+- [Create PFX Certificate](#create-pfx-certificate)
 
 ## Install Crtforge
 
@@ -32,47 +54,7 @@ crtforge --version
 
 You should see the version of the crtforge container.
 
-## Quick Start
-
-- You can create the fullchain cert within a second:
-
-```bash
-$ crtforge myApp api.myapp.com app.myapp.com
-
-App certs created successfully.
-App name: myApp
-Domains: [api.myapp.com app.myapp.com]
-To see your cert files, please check the dir: /home/ubuntu/.config/crtforge/default/myApp
-```
-
-- 🎉 Ta-Da Your certs are ready.
-
-```bash
-$ ls -l $HOME/.config/crtforge/default/myApp
-
-total 24
--rw-rw-r-- 1 ubuntu ubuntu 5477 Aug 18 23:06 fullchain.crt
--rwxrwxr-x 1 ubuntu ubuntu  320 Aug 18 23:06 myApp.cnf
--rw-rw-r-- 1 ubuntu ubuntu 1395 Aug 18 23:06 myApp.crt
--rw-rw-r-- 1 ubuntu ubuntu  944 Aug 18 23:06 myApp.csr
--rw------- 1 ubuntu ubuntu 1704 Aug 18 23:06 myApp.key
-```
-
-> :information_source: Files and Meanings
->
-> You will probably use `fullchain.crt` `myApp.crt` `myApp.key`
->
-> File named `fullchain.crt` contains myApp.crt, intermediateCa.crt and rootCa.crt
->
-> File named `myApp.crt` contains the public ssl cert.
->
-> File named `myApp.key` contains the private ssl key. Keep it secret!
-
-> :information_source: Usage
->
-> You can use the `fullchain.crt` `myApp.key` in web servers like nginx, apache or mock servers.
-
-## Building From Source
+### Building From Source
 
 You can build the crtforge on your own machine.
 
@@ -87,6 +69,47 @@ git clone https://github.com/safderun/crtforge.git && \
   commitId=$(git rev-parse --short $version) && \
   go build -ldflags "-X crtforge/cmd.version=$version -X crtforge/cmd.commitId=$commitId" -o crtforge -v .
 ```
+
+## Quick Start
+
+📄 You can create the fullchain certificate within a second:
+
+```bash
+$ crtforge myApp api.myapp.com app.myapp.com
+
+App certs created successfully.
+App name: myApp
+Domains: [api.myapp.com app.myapp.com]
+To see your cert files, please check the dir: /home/ubuntu/.config/crtforge/default/myApp
+```
+
+⭐ You can also create a certificate with wildcard domain:
+
+⚠️ Please place your domain between double quotes ("example.com") like the example below.
+
+```bash
+$ ./crtforge mySecondApp "*.example.com"
+
+App certs created successfully.
+App name: app8
+Domains: [*.example.com]
+To see your cert files, please check the dir: /home/ubuntu/.config/crtforge/testing/app8
+```
+
+🎉 Ta-Da Your certs are ready.
+
+```bash
+$ ls -l $HOME/.config/crtforge/default/myApp
+
+total 24
+-rw-rw-r-- 1 ubuntu ubuntu 5477 Aug 18 23:06 fullchain.crt
+-rwxrwxr-x 1 ubuntu ubuntu  320 Aug 18 23:06 myApp.cnf
+-rw-rw-r-- 1 ubuntu ubuntu 1395 Aug 18 23:06 myApp.crt
+-rw-rw-r-- 1 ubuntu ubuntu  944 Aug 18 23:06 myApp.csr
+-rw------- 1 ubuntu ubuntu 1704 Aug 18 23:06 myApp.key
+```
+
+You can use the `fullchain.crt` `myApp.key` in web servers like nginx, apache or mock servers.
 
 ## Trusting Self Signed Root CA
 
@@ -108,7 +131,7 @@ crtforge -r medical backend api.example.com auth.example.com
 > If you plan to use the app certs for long time for example on-prem home lab apps, create them with same root ca and trust only that root ca.
 > So you don't need to trust all app certs one by one.
 
-## Background
+## Config File Structure
 
 When you run the cli application without `--rootCa` flag, it creates a `default` in $HOME/.config/crtforge.
 
@@ -118,7 +141,7 @@ And last, your application's cert files are being created under the a folder nam
 
 You can create multiple application certs under same rootCA.
 
-## Custom Root CA
+## Create Custom Root CA
 
 If you need a brand new chain, you can create a new rootCA with `--rootCa` flag.
 
@@ -134,7 +157,7 @@ The folder structure is same as default.
 
 You can get the application certificates under `$HOME/.config/crtforge/customRootCa/myApp`
 
-## Custom Intermediate CA
+## Create Custom Intermediate CA
 
 #### Under Default Root CA
 
@@ -215,4 +238,22 @@ Root CA ("MedicalCompany")
   |            |
   |            |-- myfinancecompany.com
   |            |-- app.myfinancecompany.com
+```
+
+## Create PFX Certificate
+
+If you want to create certificate also in pfx format, you can add add --pfx or -p flag to your command.
+
+The pfx password is hardcoded and it's "changeit".
+
+- If you want to create a PFX certificate under default root CA:
+
+```bash
+crtforge gitlab gitlab.example.com --pfx
+```
+
+- If you want to create a PFX certificate under custom root and intermediate CA:
+
+```bash
+crtforge --root-ca git-providers --intermediate-ca engineer azure azure.example.com
 ```
