@@ -1,8 +1,13 @@
 FROM alpine:3.18.4 as runner
 RUN apk add openssl --no-cache
+WORKDIR /app
+
+RUN adduser -u 1000 -D tempuser
+RUN chown tempuser:tempuser /app
+USER tempuser
+ENV CONTAINER true
 
 ARG binary
-COPY ${binary} /
+COPY ${binary} /app/crtforge
 
-ENV CONTAINER true
-ENTRYPOINT [ "/crtforge" ]
+ENTRYPOINT [ "/app/crtforge" ]
