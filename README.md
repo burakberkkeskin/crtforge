@@ -11,23 +11,14 @@ Crtforge is a cli tool which can generate a full chain self signed ssl certific
 ## 📖 Table of Contents
 
 - [Installation](#install-crtforge)
-
   - [Install Locally (Recommended)](#install-locally-recommended)
-
   - [Run With Docker](#run-with-docker)
-
   - [Building From Source](#building-from-source)
-
 - [Quick Start](#quick-start)
-
 - [Trust The Root Cert](#trusting-self-signed-root-ca)
-
 - [Config Directory Structure](#config-file-structure)
-
 - [Create Custom Root CA](#create-custom-root-ca)
-
 - [Create Custom Intermediate CA](#create-custom-intermediate-ca)
-
 - [Create PFX Certificate](#create-pfx-certificate)
 
 ## Install Crtforge
