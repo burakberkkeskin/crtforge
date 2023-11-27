@@ -63,6 +63,10 @@ func rootRun(cmd *cobra.Command, args []string) {
 		RootCACnf:          defaultCARootCACnf,
 	})
 
+	// If output directory is not provided, use the default ca directory
+	if outputDir == "" {
+		outputDir = defaultCADir
+	}
 	services.CreateAppCrt(services.CreateAppCrtOptions{
 		OutputDir:         outputDir,
 		IntermediateCACnf: intermediateCA.IntermediateCACnf,
@@ -118,7 +122,7 @@ func init() {
 	// Select custom intermediate ca
 	rootCmd.Flags().StringVarP(&intermediateCaName, "intermediate-ca", "i", "intermediateCA", "Set Intermediate CA Name.")
 
-	// Select output directory for the certs
+	// Select output directory for the
 	rootCmd.Flags().StringVarP(&outputDir, "output", "o", "", "Set output directory for the certs.")
 
 	// Example usages:
