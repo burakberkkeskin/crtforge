@@ -39,7 +39,7 @@ type CreateAppCrtOptions struct {
 
 func CreateAppCrt(opts CreateAppCrtOptions) {
 	// Create app directory if not exists:
-	appCrtDir := opts.OutputDir + "/" + opts.AppName
+	appCrtDir := fmt.Sprintf("%s/%s", opts.OutputDir, opts.AppName)
 	if _, err := os.Stat(appCrtDir); os.IsNotExist(err) {
 		log.Debug("App dir is being created", appCrtDir)
 		err := os.Mkdir(appCrtDir, 0700)
@@ -52,14 +52,13 @@ func CreateAppCrt(opts CreateAppCrtOptions) {
 	}
 
 	// Create app key with openssl
-	applicationKeyFile := appCrtDir + "/" + opts.AppName + ".key"
+	applicationKeyFile := fmt.Sprintf("%s/%s.key", appCrtDir, opts.AppName)
 	if _, err := os.Stat(applicationKeyFile); os.IsNotExist(err) {
 		log.Debug("App Key is being created.")
 		createAppKeyCmd := exec.Command("openssl", "genpkey", "-algorithm", "RSA", "-out", applicationKeyFile)
-		createAppKeyCmd.Dir = appCrtDir
 		err = createAppKeyCmd.Run()
 		if err != nil {
-			log.Debug("Error while creating App Key: ")
+			log.Fatal("Error while creating App Key: ", err)
 		}
 		log.Debug("App Key generated at ", applicationKeyFile)
 	} else {
@@ -67,14 +66,13 @@ func CreateAppCrt(opts CreateAppCrtOptions) {
 	}
 
 	// Create app cnf file
-
-	applicationCnfFile := appCrtDir + "/" + opts.AppName + ".cnf"
+	applicationCnfFile := fmt.Sprintf("%s/%s.cnf", appCrtDir, opts.AppName)
 	if _, err := os.Stat(applicationCnfFile); os.IsNotExist(err) {
 		log.Debug("App Cnf being created.")
 
 		appCnf, err := prepareAppCnf(opts.AppName, opts.CommonName, opts.AltNames)
 		if err != nil {
-			log.Debug("Error while creating App Cnf from template:", err)
+			log.Fatal("Error while creating App Cnf from template:", err)
 			return
 		}
 
@@ -88,7 +86,7 @@ func CreateAppCrt(opts CreateAppCrtOptions) {
 	}
 
 	// Create default CA App csr file
-	applicationCsrFile := appCrtDir + "/" + opts.AppName + ".csr"
+	applicationCsrFile := fmt.Sprintf("%s/%s.csr", appCrtDir, opts.AppName)
 	if _, err := os.Stat(applicationCsrFile); os.IsNotExist(err) {
 		log.Debug("App Crt being created")
 		createAppCsrCmd := exec.Command(
@@ -97,7 +95,6 @@ func CreateAppCrt(opts CreateAppCrtOptions) {
 			"-config", applicationCnfFile,
 			"-out", applicationCsrFile,
 		)
-		createAppCsrCmd.Dir = appCrtDir
 		err = createAppCsrCmd.Run()
 		if err != nil {
 			log.Fatal("Error while creating App Csr: ", err)
@@ -108,7 +105,7 @@ func CreateAppCrt(opts CreateAppCrtOptions) {
 	}
 
 	// Create default CA intermediate CA crt file
-	applicationCrtFile := appCrtDir + "/" + opts.AppName + ".crt"
+	applicationCrtFile := fmt.Sprintf("%s/%s.crt", appCrtDir, opts.AppName)
 	if _, err := os.Stat(applicationCrtFile); os.IsNotExist(err) {
 		log.Debug("App Crt being created.")
 		createAppCrtCmd := exec.Command(
@@ -122,7 +119,6 @@ func CreateAppCrt(opts CreateAppCrtOptions) {
 			"-extfile", applicationCnfFile,
 			"-out", applicationCrtFile,
 		)
-		createAppCrtCmd.Dir = appCrtDir
 		err = createAppCrtCmd.Run()
 		if err != nil {
 			log.Fatal("Error while creating App Crt: ", err)
@@ -184,7 +180,8 @@ func CreateAppCrt(opts CreateAppCrtOptions) {
 	} else {
 		log.Debug("App fullchain crt already exits, skipping.")
 	}
-	applicationPfxFile := appCrtDir + "/" + opts.AppName + ".pfx"
+
+	applicationPfxFile := fmt.Sprintf("%s/%s.pfx", appCrtDir, opts.AppName)
 	if _, err := os.Stat(applicationPfxFile); os.IsNotExist(err) {
 		if opts.P12 {
 			log.Debug("Creating p12 files.")
