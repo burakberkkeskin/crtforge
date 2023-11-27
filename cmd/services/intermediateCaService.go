@@ -17,9 +17,27 @@ import (
 //go:embed intermediateCaCnf.tmpl
 var intermediateCACnfTmpl []byte
 
-func CreateIntermediateCa(CaDir string, intermediateCaName string, rootCaCnf string) (string, string, string) {
+type CreateIntermediateCAOptions struct {
+	// ConfigDirectory is the config directory for crtforge
+	ConfigDirectory string
+	// IntermediateCaName is the name of the intermediate ca
+	IntermediateCAName string
+	// RootCaCnf is the root ca cnf file
+	RootCACnf string
+}
+
+type IntermediateCA struct {
+	// IntermediateCaCrt is the intermediate ca crt file
+	IntermediateCACrt string
+	// IntermediateCaCnf is the intermediate ca cnf file
+	IntermediateCACnf string
+	// IntermediateCaKey is the intermediate ca key file
+	IntermediateCAKey string
+}
+
+func CreateIntermediateCa(opts CreateIntermediateCAOptions) IntermediateCA {
 	// Create intermediate ca folder
-	intermediateCaDir := CaDir + "/" + intermediateCaName
+	intermediateCaDir := opts.ConfigDirectory + "/" + opts.IntermediateCAName
 	if _, err := os.Stat(intermediateCaDir); os.IsNotExist(err) {
 		log.Debug("Intermediate CA dir is being created", intermediateCaDir)
 		err := os.Mkdir(intermediateCaDir, 0700)
@@ -84,7 +102,7 @@ func CreateIntermediateCa(CaDir string, intermediateCaName string, rootCaCnf str
 	intermediateCaCsrFile := intermediateCaDir + "/intermediateCA.csr"
 	if _, err := os.Stat(intermediateCaCsrFile); os.IsNotExist(err) {
 		log.Debug("Intermediate CA Csr being created.")
-		crtSubject := "/C=TR/ST=Istanbul/L=Istanbul/O=Crtforge/OU=" + intermediateCaName + "/CN=Crtforge Intermediate CA/emailAddress=crtforge@burakberk.dev"
+		crtSubject := "/C=TR/ST=Istanbul/L=Istanbul/O=Crtforge/OU=" + opts.IntermediateCAName + "/CN=Crtforge Intermediate CA/emailAddress=crtforge@burakberk.dev"
 		createIntermediateCaCsrCmd := exec.Command(
 			"openssl", "req", "-nodes",
 			"-config", intermediateCaCnfFile,
@@ -109,7 +127,7 @@ func CreateIntermediateCa(CaDir string, intermediateCaName string, rootCaCnf str
 		log.Debug("Intermediate CA Crt being created")
 		createIntermediateCaCrtCmd := exec.Command(
 			"openssl", "ca", "-batch",
-			"-config", rootCaCnf,
+			"-config", opts.RootCACnf,
 			"-extensions", "v3_intermediate_ca",
 			"-days", "3650",
 			"-notext", "-md", "sha256",
@@ -125,7 +143,12 @@ func CreateIntermediateCa(CaDir string, intermediateCaName string, rootCaCnf str
 	}
 
 	log.Debug("Intermediate CA created.")
-	return intermediateCaCrtFile, intermediateCaCnfFile, intermediateCaKeyFile
+
+	return IntermediateCA{
+		IntermediateCACrt: intermediateCaCrtFile,
+		IntermediateCACnf: intermediateCaCnfFile,
+		IntermediateCAKey: intermediateCaKeyFile,
+	}
 }
 
 func prepareIntermediateCnf(intermediateCaDir string) ([]byte, error) {

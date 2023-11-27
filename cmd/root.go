@@ -15,6 +15,7 @@ import (
 
 // Cli flags
 var caName string
+var outputDir string
 var intermediateCaName string
 var trustRootCrt bool
 var pfx bool
@@ -56,9 +57,23 @@ func rootRun(cmd *cobra.Command, args []string) {
 		services.TrustCrt(defaultCARootCACrt)
 	}
 
-	defaultCAIntermediateCACrt, defaultCAIntermediateCACnf, defaultCAIntermediateCAkey := services.CreateIntermediateCa(defaultCADir, intermediateCaName, defaultCARootCACnf)
+	intermediateCA := services.CreateIntermediateCa(services.CreateIntermediateCAOptions{
+		ConfigDirectory:    defaultCADir,
+		IntermediateCAName: intermediateCaName,
+		RootCACnf:          defaultCARootCACnf,
+	})
 
-	services.CreateAppCrt(defaultCADir, defaultCAIntermediateCACnf, defaultCAIntermediateCACrt, defaultCAIntermediateCAkey, defaultCARootCACrt, appName, appDomains[0], appDomains, pfx)
+	services.CreateAppCrt(services.CreateAppCrtOptions{
+		OutputDir:         outputDir,
+		IntermediateCACnf: intermediateCA.IntermediateCACnf,
+		IntermediateCACrt: intermediateCA.IntermediateCACrt,
+		IntermediateCAKey: intermediateCA.IntermediateCAKey,
+		RootCACrt:         defaultCARootCACrt,
+		AppName:           appName,
+		CommonName:        appDomains[0],
+		AltNames:          appDomains,
+		P12:               pfx,
+	})
 }
 
 func createConfigDir(configDir string) {
@@ -102,6 +117,9 @@ func init() {
 
 	// Select custom intermediate ca
 	rootCmd.Flags().StringVarP(&intermediateCaName, "intermediate-ca", "i", "intermediateCA", "Set Intermediate CA Name.")
+
+	// Select output directory for the certs
+	rootCmd.Flags().StringVarP(&outputDir, "output", "o", "", "Set output directory for the certs.")
 
 	// Example usages:
 	rootCmd.Example = `Generate a cert under the default root and the default intermediate ca: 
