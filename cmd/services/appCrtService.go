@@ -15,9 +15,31 @@ import (
 //go:embed appCnf.tmpl
 var applicationCnf []byte
 
-func CreateAppCrt(defaultCADir string, intermediateCaCnf string, intermediateCaCrt string, intermediateCaKey string, rootCaCrt string, appName string, commonName string, altNames []string, p12 bool) {
+// outputDir string, intermediateCaCnf string, intermediateCaCrt string, intermediateCaKey string, rootCaCrt string, appName string, commonName string, altNames []string, p12 bool
+type CreateAppCrtOptions struct {
+	// OutputDir is the output directory for created certificates
+	OutputDir string
+	// IntermediateCaCnf is the intermediate ca cnf file
+	IntermediateCACnf string
+	// IntermediateCaCrt is the intermediate ca crt file
+	IntermediateCACrt string
+	// IntermediateCaKey is the intermediate ca key file
+	IntermediateCAKey string
+	// RootCaCrt is the root ca crt file
+	RootCACrt string
+	// AppName is the name of the application
+	AppName string
+	// CommonName is the common name of the application
+	CommonName string
+	// AltNames is the alternative names of the application
+	AltNames []string
+	// P12 is the flag for creating p12 files
+	P12 bool
+}
+
+func CreateAppCrt(opts CreateAppCrtOptions) {
 	// Create app directory if not exists:
-	appCrtDir := defaultCADir + "/" + appName
+	appCrtDir := fmt.Sprintf("%s/%s", opts.OutputDir, opts.AppName)
 	if _, err := os.Stat(appCrtDir); os.IsNotExist(err) {
 		log.Debug("App dir is being created", appCrtDir)
 		err := os.Mkdir(appCrtDir, 0700)
@@ -30,14 +52,13 @@ func CreateAppCrt(defaultCADir string, intermediateCaCnf string, intermediateCaC
 	}
 
 	// Create app key with openssl
-	applicationKeyFile := appCrtDir + "/" + appName + ".key"
+	applicationKeyFile := fmt.Sprintf("%s/%s.key", appCrtDir, opts.AppName)
 	if _, err := os.Stat(applicationKeyFile); os.IsNotExist(err) {
 		log.Debug("App Key is being created.")
 		createAppKeyCmd := exec.Command("openssl", "genpkey", "-algorithm", "RSA", "-out", applicationKeyFile)
-		createAppKeyCmd.Dir = appCrtDir
 		err = createAppKeyCmd.Run()
 		if err != nil {
-			log.Debug("Error while creating App Key: ")
+			log.Fatal("Error while creating App Key: ", err)
 		}
 		log.Debug("App Key generated at ", applicationKeyFile)
 	} else {
@@ -45,14 +66,13 @@ func CreateAppCrt(defaultCADir string, intermediateCaCnf string, intermediateCaC
 	}
 
 	// Create app cnf file
-
-	applicationCnfFile := appCrtDir + "/" + appName + ".cnf"
+	applicationCnfFile := fmt.Sprintf("%s/%s.cnf", appCrtDir, opts.AppName)
 	if _, err := os.Stat(applicationCnfFile); os.IsNotExist(err) {
 		log.Debug("App Cnf being created.")
 
-		appCnf, err := prepareAppCnf(appName, commonName, altNames)
+		appCnf, err := prepareAppCnf(opts.AppName, opts.CommonName, opts.AltNames)
 		if err != nil {
-			log.Debug("Error while creating App Cnf from template:", err)
+			log.Fatal("Error while creating App Cnf from template:", err)
 			return
 		}
 
@@ -66,7 +86,7 @@ func CreateAppCrt(defaultCADir string, intermediateCaCnf string, intermediateCaC
 	}
 
 	// Create default CA App csr file
-	applicationCsrFile := appCrtDir + "/" + appName + ".csr"
+	applicationCsrFile := fmt.Sprintf("%s/%s.csr", appCrtDir, opts.AppName)
 	if _, err := os.Stat(applicationCsrFile); os.IsNotExist(err) {
 		log.Debug("App Crt being created")
 		createAppCsrCmd := exec.Command(
@@ -75,7 +95,6 @@ func CreateAppCrt(defaultCADir string, intermediateCaCnf string, intermediateCaC
 			"-config", applicationCnfFile,
 			"-out", applicationCsrFile,
 		)
-		createAppCsrCmd.Dir = appCrtDir
 		err = createAppCsrCmd.Run()
 		if err != nil {
 			log.Fatal("Error while creating App Csr: ", err)
@@ -86,21 +105,20 @@ func CreateAppCrt(defaultCADir string, intermediateCaCnf string, intermediateCaC
 	}
 
 	// Create default CA intermediate CA crt file
-	applicationCrtFile := appCrtDir + "/" + appName + ".crt"
+	applicationCrtFile := fmt.Sprintf("%s/%s.crt", appCrtDir, opts.AppName)
 	if _, err := os.Stat(applicationCrtFile); os.IsNotExist(err) {
 		log.Debug("App Crt being created.")
 		createAppCrtCmd := exec.Command(
 			"openssl", "x509", "-req",
 			"-in", applicationCsrFile,
-			"-CA", intermediateCaCrt,
-			"-CAkey", intermediateCaKey,
+			"-CA", opts.IntermediateCACrt,
+			"-CAkey", opts.IntermediateCAKey,
 			"-CAcreateserial",
 			"-days", "365",
 			"-extensions", "v3_ext",
 			"-extfile", applicationCnfFile,
 			"-out", applicationCrtFile,
 		)
-		createAppCrtCmd.Dir = appCrtDir
 		err = createAppCrtCmd.Run()
 		if err != nil {
 			log.Fatal("Error while creating App Crt: ", err)
@@ -111,13 +129,13 @@ func CreateAppCrt(defaultCADir string, intermediateCaCnf string, intermediateCaC
 	}
 
 	// Create fullchain cert file.
-	rootCaCrtContent, err := os.ReadFile(rootCaCrt)
+	rootCaCrtContent, err := os.ReadFile(opts.RootCACrt)
 	if err != nil {
 		log.Fatal("Error while reading Root CA cert for fullchain:", err)
 		return
 	}
 
-	intermediateCaCrtContent, err := os.ReadFile(intermediateCaCrt)
+	intermediateCaCrtContent, err := os.ReadFile(opts.IntermediateCACrt)
 	if err != nil {
 		log.Fatal("Error while reading Intermediate CA cert for fullchain:", err)
 		return
@@ -162,9 +180,10 @@ func CreateAppCrt(defaultCADir string, intermediateCaCnf string, intermediateCaC
 	} else {
 		log.Debug("App fullchain crt already exits, skipping.")
 	}
-	applicationPfxFile := appCrtDir + "/" + appName + ".pfx"
+
+	applicationPfxFile := fmt.Sprintf("%s/%s.pfx", appCrtDir, opts.AppName)
 	if _, err := os.Stat(applicationPfxFile); os.IsNotExist(err) {
-		if p12 {
+		if opts.P12 {
 			log.Debug("Creating p12 files.")
 			createAppCrtCmd := exec.Command(
 				"openssl", "pkcs12",
@@ -185,8 +204,8 @@ func CreateAppCrt(defaultCADir string, intermediateCaCnf string, intermediateCaC
 		log.Debug("App pfx already exits, skipping.")
 	}
 	log.Info("App certs created successfully.")
-	log.Info("App name: ", appName)
-	log.Info("Domains: ", altNames)
+	log.Info("App name: ", opts.AppName)
+	log.Info("Domains: ", opts.AltNames)
 	log.Info("To see your cert files, please check the dir: ", appCrtDir)
 	if os.Getenv("CONTAINER") == "true" {
 		log.Warn("You are running the crtforge from container.")

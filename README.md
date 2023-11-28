@@ -148,6 +148,14 @@ The folder structure is same as default.
 
 You can get the application certificates under `$HOME/.config/crtforge/customRootCa/myApp`
 
+If you wwant custom application certificate directory, you can use `--output, -o` flag. 
+
+For example:
+
+```bash
+crtforge --root-ca customRootCa --output /home/ubuntu myApp api.myapp.com app.myapp.com
+```
+
 ## Create Custom Intermediate CA
 
 #### Under Default Root CA
