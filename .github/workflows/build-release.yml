@@ -35,7 +35,7 @@ jobs:
           git config user.name "GitHub Actions"
           git config user.email "actions@github.com"
           git fetch --tags --force
-          previousTag=$(git tag --sort=-v:refname | grep -v '\-beta' | grep -v '\-alpha' | head -n 2 | tail -n 1)
+          previousTag=$(git tag --sort=-v:refname | grep -v '\-beta' | grep -v '\-alpha' | head -n 1 | tail -n 1)
           version=$(git describe --tags --abbrev=0)
           commitId=$(git --no-pager log -1 --oneline | awk '{print $1}')
           releaseBinary=true
