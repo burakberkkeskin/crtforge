@@ -10,15 +10,19 @@ Crtforge is a cli tool which can generate a full chain self signed ssl certific
 
 ## 📖 Table of Contents
 
-- [Installation](#install-crtforge)
+- [🔒 Overview](#-overview)
+- [📖 Table of Contents](#-table-of-contents)
+- [Install Crtforge](#install-crtforge)
   - [Install Locally (Recommended)](#install-locally-recommended)
   - [Run With Docker](#run-with-docker)
   - [Building From Source](#building-from-source)
 - [Quick Start](#quick-start)
-- [Trust The Root Cert](#trusting-self-signed-root-ca)
-- [Config Directory Structure](#config-file-structure)
+- [Trusting Self Signed Root CA](#trusting-self-signed-root-ca)
+- [Config File Structure](#config-file-structure)
 - [Create Custom Root CA](#create-custom-root-ca)
 - [Create Custom Intermediate CA](#create-custom-intermediate-ca)
+    - [Under Default Root CA](#under-default-root-ca)
+    - [Under Custom Root CA](#under-custom-root-ca)
 - [Create PFX Certificate](#create-pfx-certificate)
 
 ## Install Crtforge
@@ -57,7 +61,7 @@ To build, run the commands below:
 git clone https://github.com/safderun/crtforge.git && \
   cd crtforge && \
   version=$(git describe --tags --abbrev=0) && \
-  commitId=$(git rev-parse --short $version) && \
+  commitId=$(git --no-pager log -1 --oneline | awk '{print $1}') && \
   go build -ldflags "-X crtforge/cmd.version=$version -X crtforge/cmd.commitId=$commitId" -o crtforge -v .
 ```
 
