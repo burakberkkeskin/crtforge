@@ -1,21 +1,20 @@
 package services
 
 import (
-	"bytes"
-	_ "embed"
+	"crypto/rand"
+	"crypto/rsa"
+	"crypto/x509"
+	"crypto/x509/pkix"
+	"encoding/pem"
 	"fmt"
-	"html/template"
+	"math/big"
+	"net"
 	"os"
-	"os/exec"
-	"strings"
+	"time"
 
 	log "github.com/sirupsen/logrus"
 )
 
-//go:embed appCnf.tmpl
-var applicationCnf []byte
-
-// outputDir string, intermediateCaCnf string, intermediateCaCrt string, intermediateCaKey string, rootCaCrt string, appName string, commonName string, altNames []string, p12 bool
 type CreateAppCrtOptions struct {
 	// OutputDir is the output directory for created certificates
 	OutputDir string
@@ -38,205 +37,145 @@ type CreateAppCrtOptions struct {
 }
 
 func CreateAppCrt(opts CreateAppCrtOptions) {
-	// Create app directory if not exists:
+	// Create app directory if not exists
 	appCrtDir := fmt.Sprintf("%s/%s", opts.OutputDir, opts.AppName)
-	if _, err := os.Stat(appCrtDir); os.IsNotExist(err) {
-		log.Debug("App dir is being created", appCrtDir)
-		err := os.Mkdir(appCrtDir, 0700)
-		if err != nil {
-			log.Fatal("Error while creating App dir: ", err)
-		}
-		log.Debug("App dir generated at ", appCrtDir)
-	} else {
-		log.Debug("App dir already exists, skipping.")
+	if err := os.MkdirAll(appCrtDir, 0700); err != nil {
+		log.Fatal("Error while creating App dir: ", err)
 	}
 
-	// Create app key with openssl
+	// Generate private key
+	privateKey, err := rsa.GenerateKey(rand.Reader, 2048)
+	if err != nil {
+		log.Fatal("Error generating private key: ", err)
+	}
+
+	// Create app key file
 	applicationKeyFile := fmt.Sprintf("%s/%s.key", appCrtDir, opts.AppName)
-	if _, err := os.Stat(applicationKeyFile); os.IsNotExist(err) {
-		log.Debug("App Key is being created.")
-		createAppKeyCmd := exec.Command("openssl", "genpkey", "-algorithm", "RSA", "-out", applicationKeyFile)
-		err = createAppKeyCmd.Run()
-		if err != nil {
-			log.Fatal("Error while creating App Key: ", err)
-		}
-		log.Debug("App Key generated at ", applicationKeyFile)
-	} else {
-		log.Debug("App Key already exists, skipping.")
+	keyOut, err := os.OpenFile(applicationKeyFile, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0600)
+	if err != nil {
+		log.Fatal("Error creating key file: ", err)
+	}
+	pem.Encode(keyOut, &pem.Block{Type: "RSA PRIVATE KEY", Bytes: x509.MarshalPKCS1PrivateKey(privateKey)})
+	keyOut.Close()
+
+	// Load CA certificate and key
+	caCert, caKey, err := loadCACertAndKey(opts.IntermediateCACrt, opts.IntermediateCAKey)
+	if err != nil {
+		log.Fatal("Error loading CA certificate and key: ", err)
 	}
 
-	// Create app cnf file
-	applicationCnfFile := fmt.Sprintf("%s/%s.cnf", appCrtDir, opts.AppName)
-	if _, err := os.Stat(applicationCnfFile); os.IsNotExist(err) {
-		log.Debug("App Cnf being created.")
-
-		appCnf, err := prepareAppCnf(opts.AppName, opts.CommonName, opts.AltNames)
-		if err != nil {
-			log.Fatal("Error while creating App Cnf from template:", err)
-			return
-		}
-
-		err = os.WriteFile(applicationCnfFile, appCnf, os.ModePerm)
-		if err != nil {
-			log.Fatal("Error while writing App Cnf to file: ", err)
-		}
-		log.Debug("App Cnf generated at ", applicationCnfFile)
-	} else {
-		log.Debug("App Cnf already exists, skipping.")
+	// Prepare certificate template
+	serialNumberLimit := new(big.Int).Lsh(big.NewInt(1), 128)
+	serialNumber, err := rand.Int(rand.Reader, serialNumberLimit)
+	if err != nil {
+		log.Fatal("Error generating serial number: ", err)
 	}
 
-	// Create default CA App csr file
-	applicationCsrFile := fmt.Sprintf("%s/%s.csr", appCrtDir, opts.AppName)
-	if _, err := os.Stat(applicationCsrFile); os.IsNotExist(err) {
-		log.Debug("App Crt being created")
-		createAppCsrCmd := exec.Command(
-			"openssl", "req", "-new",
-			"-key", applicationKeyFile,
-			"-config", applicationCnfFile,
-			"-out", applicationCsrFile,
-		)
-		err = createAppCsrCmd.Run()
-		if err != nil {
-			log.Fatal("Error while creating App Csr: ", err)
-		}
-		log.Debug("App Csr generated at ", applicationCsrFile)
-	} else {
-		log.Debug("App Csr already exists, skipping.")
+	template := x509.Certificate{
+		SerialNumber: serialNumber,
+		Subject: pkix.Name{
+			CommonName: opts.CommonName,
+		},
+		NotBefore:             time.Now(),
+		NotAfter:              time.Now().AddDate(1, 0, 0),
+		KeyUsage:              x509.KeyUsageDigitalSignature | x509.KeyUsageKeyEncipherment,
+		ExtKeyUsage:           []x509.ExtKeyUsage{x509.ExtKeyUsageServerAuth},
+		BasicConstraintsValid: true,
 	}
 
-	// Create default CA intermediate CA crt file
+	for _, altName := range opts.AltNames {
+		if ip := net.ParseIP(altName); ip != nil {
+			template.IPAddresses = append(template.IPAddresses, ip)
+		} else {
+			template.DNSNames = append(template.DNSNames, altName)
+		}
+	}
+
+	// Create certificate
+	derBytes, err := x509.CreateCertificate(rand.Reader, &template, caCert, &privateKey.PublicKey, caKey)
+	if err != nil {
+		log.Fatal("Error creating certificate: ", err)
+	}
+
+	// Write certificate to file
 	applicationCrtFile := fmt.Sprintf("%s/%s.crt", appCrtDir, opts.AppName)
-	if _, err := os.Stat(applicationCrtFile); os.IsNotExist(err) {
-		log.Debug("App Crt being created.")
-		createAppCrtCmd := exec.Command(
-			"openssl", "x509", "-req",
-			"-in", applicationCsrFile,
-			"-CA", opts.IntermediateCACrt,
-			"-CAkey", opts.IntermediateCAKey,
-			"-CAcreateserial",
-			"-days", "365",
-			"-extensions", "v3_ext",
-			"-extfile", applicationCnfFile,
-			"-out", applicationCrtFile,
-		)
-		err = createAppCrtCmd.Run()
-		if err != nil {
-			log.Fatal("Error while creating App Crt: ", err)
-		}
-		log.Debug("App Crt generated at ", applicationCrtFile)
-	} else {
-		log.Debug("App Crt already exists, skipping.")
-	}
-
-	// Create fullchain cert file.
-	rootCaCrtContent, err := os.ReadFile(opts.RootCACrt)
+	certOut, err := os.Create(applicationCrtFile)
 	if err != nil {
-		log.Fatal("Error while reading Root CA cert for fullchain:", err)
-		return
+		log.Fatal("Error creating certificate file: ", err)
 	}
+	pem.Encode(certOut, &pem.Block{Type: "CERTIFICATE", Bytes: derBytes})
+	certOut.Close()
 
-	intermediateCaCrtContent, err := os.ReadFile(opts.IntermediateCACrt)
+	// Create fullchain certificate file
+	err = createFullchainCert(opts, applicationCrtFile, appCrtDir)
 	if err != nil {
-		log.Fatal("Error while reading Intermediate CA cert for fullchain:", err)
-		return
+		log.Fatal("Error creating fullchain certificate: ", err)
 	}
 
-	appCrtContent, err := os.ReadFile(applicationCrtFile)
-	if err != nil {
-		log.Fatal("Error while reading App cert for fullchain:", err)
-		return
-	}
-
-	appFullchainCrtFile := appCrtDir + "/fullchain.crt"
-	if _, err := os.Stat(appFullchainCrtFile); os.IsNotExist(err) {
-		log.Debug("App fullchain crt being created.")
-		file, err := os.Create(appFullchainCrtFile)
-		if err != nil {
-			log.Fatal("Error while creating fullchain crt file:", err)
-		}
-		defer file.Close()
-
-		fullchainCrtFile, err := os.OpenFile(appFullchainCrtFile, os.O_WRONLY|os.O_APPEND, 0600)
-		if err != nil {
-			log.Fatal("Error while opening fullchain crt file:", err)
-		}
-		defer fullchainCrtFile.Close()
-
-		_, err = fullchainCrtFile.Write(appCrtContent)
-		if err != nil {
-			log.Fatal("Error while writing the app crt to the fullchain crt file:", err)
-		}
-
-		_, err = fullchainCrtFile.Write(intermediateCaCrtContent)
-		if err != nil {
-			log.Fatal("Error while writing the intermediate ca cert to file fullchain file:", err)
-		}
-
-		_, err = fullchainCrtFile.Write(rootCaCrtContent)
-		if err != nil {
-			log.Fatal("Error while writing the root ca crt to the fullchain crt file:", err)
-		}
-		log.Debug("App Fullchain crt generated at ", applicationCrtFile)
-	} else {
-		log.Debug("App fullchain crt already exits, skipping.")
-	}
-
-	applicationPfxFile := fmt.Sprintf("%s/%s.pfx", appCrtDir, opts.AppName)
-	if _, err := os.Stat(applicationPfxFile); os.IsNotExist(err) {
-		if opts.P12 {
-			log.Debug("Creating p12 files.")
-			createAppCrtCmd := exec.Command(
-				"openssl", "pkcs12",
-				"-in", appFullchainCrtFile,
-				"-inkey", applicationKeyFile,
-				"-password", "pass:changeit",
-				"-export",
-				"-out", applicationPfxFile,
-			)
-			createAppCrtCmd.Dir = appCrtDir
-			err = createAppCrtCmd.Run()
-			if err != nil {
-				log.Fatal("Error while creating App Crt: ", err)
-			}
-			log.Debug("App Pfx generated at ", applicationCrtFile)
-		}
-	} else {
-		log.Debug("App pfx already exits, skipping.")
-	}
 	log.Info("App certs created successfully.")
 	log.Info("App name: ", opts.AppName)
 	log.Info("Domains: ", opts.AltNames)
 	log.Info("To see your cert files, please check the dir: ", appCrtDir)
-	if os.Getenv("CONTAINER") == "true" {
-		log.Warn("You are running the crtforge from container.")
-		log.Info("The paths you see in the logs is not valid.")
-		log.Info("You should replace /root with your own home directory.")
-		log.Info("For example /root/.config/crtforge /home/user/.config/crtforge")
-	}
 }
 
-func prepareAppCnf(appName string, commonName string, altNames []string) ([]byte, error) {
-	tmpl, err := template.New("applicationCnf").Parse(string(applicationCnf))
+func loadCACertAndKey(caCertFile, caKeyFile string) (*x509.Certificate, interface{}, error) {
+	// Read CA certificate
+	caCertPEM, err := os.ReadFile(caCertFile)
 	if err != nil {
-		return nil, err
+		return nil, nil, fmt.Errorf("error reading CA certificate: %v", err)
 	}
-	vars := make(map[string]interface{})
-	vars["appName"] = appName
-	vars["commonName"] = commonName
-	vars["altNames"] = generateAltNames(altNames)
-
-	var output bytes.Buffer
-	if err := tmpl.Execute(&output, vars); err != nil {
-		return nil, err
+	caCertBlock, _ := pem.Decode(caCertPEM)
+	caCert, err := x509.ParseCertificate(caCertBlock.Bytes)
+	if err != nil {
+		return nil, nil, fmt.Errorf("error parsing CA certificate: %v", err)
 	}
 
-	return output.Bytes(), nil
+	// Read CA private key
+	caKeyPEM, err := os.ReadFile(caKeyFile)
+	if err != nil {
+		return nil, nil, fmt.Errorf("error reading CA private key: %v", err)
+	}
+	caKeyBlock, _ := pem.Decode(caKeyPEM)
+	caKey, err := x509.ParsePKCS8PrivateKey(caKeyBlock.Bytes)
+	if err != nil {
+		return nil, nil, fmt.Errorf("error parsing CA private key: %v", err)
+	}
+
+	return caCert, caKey, nil
 }
 
-func generateAltNames(altNames []string) string {
-	var dnsLines []string
-	for i, altName := range altNames {
-		dnsLines = append(dnsLines, fmt.Sprintf("DNS.%d = %s", i+1, altName))
+func createFullchainCert(opts CreateAppCrtOptions, appCertFile, appCrtDir string) error {
+	// Read application certificate
+	appCertPEM, err := os.ReadFile(appCertFile)
+	if err != nil {
+		return fmt.Errorf("error reading application certificate: %v", err)
 	}
-	return strings.Join(dnsLines, "\n")
+
+	// Read intermediate CA certificate
+	intermediateCACertPEM, err := os.ReadFile(opts.IntermediateCACrt)
+	if err != nil {
+		return fmt.Errorf("error reading intermediate CA certificate: %v", err)
+	}
+
+	// Read root CA certificate
+	rootCACertPEM, err := os.ReadFile(opts.RootCACrt)
+	if err != nil {
+		return fmt.Errorf("error reading root CA certificate: %v", err)
+	}
+
+	// Create fullchain certificate file
+	fullchainFile := fmt.Sprintf("%s/fullchain.crt", appCrtDir)
+	out, err := os.Create(fullchainFile)
+	if err != nil {
+		return fmt.Errorf("error creating fullchain certificate file: %v", err)
+	}
+	defer out.Close()
+
+	// Write certificates to fullchain file
+	out.Write(appCertPEM)
+	out.Write(intermediateCACertPEM)
+	out.Write(rootCACertPEM)
+
+	log.Debug("Fullchain certificate created at ", fullchainFile)
+	return nil
 }
