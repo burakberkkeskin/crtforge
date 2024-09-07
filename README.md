@@ -267,20 +267,20 @@ crtforge --root-ca git-providers --intermediate-ca engineer azure azure.example.
 - Define a version.
 
 ```bash
-export gomtpVersion=v1.4.0
+export crtforgeVersion=v1.4.0
 ```
 
 - You should create a release branch from the master
 
 ```bash
 git checkout master && git pull && \
-git checkout -b release/${gomtpVersion}
+git checkout -b release/${crtforgeVersion}
 ```
 
 - Tag the commit
 
 ```bash
-git tag --sign ${gomtpVersion} -m "Added verifyCertificate and example commands."
+git tag --sign ${crtforgeVersion} -m "Added renew feature."
 ```
 
 - Push the release branch and tags
