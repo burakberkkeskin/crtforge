@@ -24,6 +24,7 @@ Crtforge is a cli tool which can generate a full chain self signed ssl certific
     - [Under Default Root CA](#under-default-root-ca)
     - [Under Custom Root CA](#under-custom-root-ca)
 - [Create PFX Certificate](#create-pfx-certificate)
+- [Release a version](#release-a-version)
 
 ## Install Crtforge
 
@@ -259,4 +260,31 @@ crtforge gitlab gitlab.example.com --pfx
 
 ```bash
 crtforge --root-ca git-providers --intermediate-ca engineer azure azure.example.com
+```
+
+## Release a version
+
+- Define a version.
+
+```bash
+export gomtpVersion=v1.4.0
+```
+
+- You should create a release branch from the master
+
+```bash
+git checkout master && git pull && \
+git checkout -b release/${gomtpVersion}
+```
+
+- Tag the commit
+
+```bash
+git tag --sign ${gomtpVersion} -m "Added verifyCertificate and example commands."
+```
+
+- Push the release branch and tags
+
+```bash
+git push && git push --tags
 ```
