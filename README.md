@@ -35,7 +35,7 @@ The binaries can be downloaded from the release page.
 Simply execute the following commands to install crtforge on Linux and macOS:
 
 ```bash
-sudo curl -L -o /usr/local/bin/crtforge "https://github.com/safderun/crtForge/releases/latest/download/crtforge-$(uname -s)-$(uname -m)" && \
+sudo curl -L -o /usr/local/bin/crtforge "https://github.com/burakberkkeskin/crtForge/releases/latest/download/crtforge-$(uname -s)-$(uname -m)" && \
 sudo chmod +x /usr/local/bin/crtforge
 ```
 
