@@ -5,6 +5,7 @@ import (
 	"crypto/rsa"
 	"crypto/x509"
 	"crypto/x509/pkix"
+
 	"encoding/pem"
 	"fmt"
 	"math/big"
@@ -13,6 +14,7 @@ import (
 	"time"
 
 	log "github.com/sirupsen/logrus"
+	"software.sslmate.com/src/go-pkcs12"
 )
 
 type CreateAppCrtOptions struct {
@@ -112,6 +114,19 @@ func CreateAppCrt(opts CreateAppCrtOptions) {
 		log.Fatal("Error creating fullchain certificate: ", err)
 	}
 
+	// Conditionally create PFX file
+	if opts.P12 {
+		pfxOutputFile := fmt.Sprintf("%s/%s.pfx", appCrtDir, opts.AppName)
+		err := createPFX(applicationKeyFile, applicationCrtFile, opts.IntermediateCACrt, opts.RootCACrt, pfxOutputFile, "changeit")
+		if err != nil {
+			// Use Fatalf for consistency with other error handling in this function
+			log.Fatalf("Error creating PFX file: %v", err)
+		}
+		// Add log message about PFX creation
+		log.Info("PFX file created successfully.")
+		log.Info("PFX file path: ", pfxOutputFile)
+	}
+
 	log.Info("App certs created successfully.")
 	log.Info("App name: ", opts.AppName)
 	log.Info("Domains: ", opts.AltNames)
@@ -177,5 +192,80 @@ func createFullchainCert(opts CreateAppCrtOptions, appCertFile, appCrtDir string
 	out.Write(rootCACertPEM)
 
 	log.Debug("Fullchain certificate created at ", fullchainFile)
+	return nil
+}
+
+func createPFX(privateKeyFile, certificateFile, intermediateCACertFile, rootCACertFile, pfxOutputFile, password string) error {
+	// Read and parse the private key
+	keyPEM, err := os.ReadFile(privateKeyFile)
+	if err != nil {
+		return fmt.Errorf("failed to read private key file: %v", err)
+	}
+	keyBlock, _ := pem.Decode(keyPEM)
+	if keyBlock == nil {
+		return fmt.Errorf("failed to decode private key PEM")
+	}
+	privateKey, err := x509.ParsePKCS1PrivateKey(keyBlock.Bytes)
+	if err != nil {
+		return fmt.Errorf("failed to parse private key: %v", err)
+	}
+
+	// Read and parse the certificate
+	certPEM, err := os.ReadFile(certificateFile)
+	if err != nil {
+		return fmt.Errorf("failed to read certificate file: %v", err)
+	}
+	certBlock, _ := pem.Decode(certPEM)
+	if certBlock == nil {
+		return fmt.Errorf("failed to decode certificate PEM")
+	}
+	cert, err := x509.ParseCertificate(certBlock.Bytes)
+	if err != nil {
+		return fmt.Errorf("failed to parse certificate: %v", err)
+	}
+
+	// Read and parse the intermediate CA certificate
+	intermediatePEM, err := os.ReadFile(intermediateCACertFile)
+	if err != nil {
+		return fmt.Errorf("failed to read intermediate CA certificate file: %v", err)
+	}
+	intermediateBlock, _ := pem.Decode(intermediatePEM)
+	if intermediateBlock == nil {
+		return fmt.Errorf("failed to decode intermediate CA certificate PEM")
+	}
+	intermediateCert, err := x509.ParseCertificate(intermediateBlock.Bytes)
+	if err != nil {
+		return fmt.Errorf("failed to parse intermediate CA certificate: %v", err)
+	}
+
+	// Read and parse the root CA certificate
+	rootPEM, err := os.ReadFile(rootCACertFile)
+	if err != nil {
+		return fmt.Errorf("failed to read root CA certificate file: %v", err)
+	}
+	rootBlock, _ := pem.Decode(rootPEM)
+	if rootBlock == nil {
+		return fmt.Errorf("failed to decode root CA certificate PEM")
+	}
+	rootCert, err := x509.ParseCertificate(rootBlock.Bytes)
+	if err != nil {
+		return fmt.Errorf("failed to parse root CA certificate: %v", err)
+	}
+
+	// Create a CA certificates chain
+	caCerts := []*x509.Certificate{intermediateCert, rootCert}
+
+	// Use Modern encoder to create PKCS#12 data with strong encryption
+	pfxData, err := pkcs12.Modern.Encode(privateKey, cert, caCerts, password)
+	if err != nil {
+		return fmt.Errorf("failed to create PKCS#12 data: %v", err)
+	}
+
+	// Write PKCS#12 data to file
+	err = os.WriteFile(pfxOutputFile, pfxData, 0600)
+	if err != nil {
+		return fmt.Errorf("failed to write PKCS#12 file: %v", err)
+	}
+
 	return nil
 }
