@@ -17,9 +17,29 @@ import (
 //go:embed rootCaCnf.tmpl
 var rootCaCnfTmpl []byte
 
-func CreateRootCa(CaDir string) (string, string, string) {
+type CreateRootCAOptions struct {
+	// ConfigDirectory is the config directory for crtforge
+	ConfigDirectory string
+	// IntermediateCaName is the name of the intermediate ca
+	IntermediateCAName string
+	// RootCaCnf is the root ca cnf file
+	RootCACnf string
+	// CountryName is short hand name of the country
+	CountryName string
+	// StateOrProvinceName is the name of the country/state in the country
+	StateOrProvinceName string
+	// LocalityName
+	LocalityName string
+	// EmailAddress is the email address of the user
+	EmailAddress string
+	// BasicConstraints
+	BasicConstraints string
+}
+
+// func CreateRootCa(CaDir string) (string, string, string) {
+func CreateRootCa(opts CreateRootCAOptions) (string, string, string) {
 	// Create the default root ca folder if not exists:
-	rootCaDir := CaDir + "/rootCA"
+	rootCaDir := opts.ConfigDirectory + "/rootCA"
 	if _, err := os.Stat(rootCaDir); os.IsNotExist(err) {
 		log.Debug("Root CA dir is being created", rootCaDir)
 		err := os.Mkdir(rootCaDir, 0700)
@@ -63,7 +83,7 @@ func CreateRootCa(CaDir string) (string, string, string) {
 	rootCaCnfFile := rootCaDir + "/rootCA.cnf"
 	if _, err := os.Stat(rootCaCnfFile); os.IsNotExist(err) {
 		log.Debug("Root CA Cnf being created.")
-		rootCaCnf, err := prepareRootCnf(rootCaDir)
+		rootCaCnf, err := prepareRootCnf(rootCaDir, opts)
 		if err != nil {
 			log.Fatal("Error while creating Root CA Cnf from template: ", err)
 		}
@@ -80,6 +100,7 @@ func CreateRootCa(CaDir string) (string, string, string) {
 	rootCaCrtFile := rootCaDir + "/rootCA.crt"
 	if _, err := os.Stat(rootCaCrtFile); os.IsNotExist(err) {
 		log.Debug("Root CA Crt being created.")
+		crtSubject := "/C=" + opts.CountryName + "/ST=" + opts.StateOrProvinceName + "/L=" + opts.LocalityName + "/O=Crtforge/OU=" + opts.IntermediateCAName + "/CN=Crtforge Intermediate CA/emailAddress=" + opts.EmailAddress
 		createRootCaCrtCmd := exec.Command(
 			"openssl", "req",
 			"-config", rootCaCnfFile,
@@ -88,7 +109,8 @@ func CreateRootCa(CaDir string) (string, string, string) {
 			"-days", "7305",
 			"-sha256", "-extensions",
 			"v3_ca",
-			"-subj", "/C=TR/ST=Istanbul/L=Istanbul/O=Crtforge/OU=Crtforge ROOT CA/CN=Crtforge ROOT CA/emailAddress=crtforge@burakberk.dev",
+			// "-subj", "/C=TR/ST=Istanbul/L=Istanbul/O=Crtforge/OU=Crtforge ROOT CA/CN=Crtforge ROOT CA/emailAddress=crtforge@burakberk.dev",
+			"-subj", crtSubject,
 			"-out", rootCaCrtFile)
 		createRootCaCrtCmd.Dir = rootCaDir
 		err = createRootCaCrtCmd.Run()
@@ -145,13 +167,18 @@ func CreateRootCa(CaDir string) (string, string, string) {
 	return rootCaCrtFile, rootCaCnfFile, rootCaKeyFile
 }
 
-func prepareRootCnf(rootCaDir string) ([]byte, error) {
+func prepareRootCnf(rootCaDir string, opts CreateRootCAOptions) ([]byte, error) {
 	tmpl, err := template.New("rootCaCnf").Parse(string(rootCaCnfTmpl))
 	if err != nil {
 		return nil, err
 	}
 	vars := make(map[string]interface{})
 	vars["dir"] = rootCaDir
+	vars["countryName"] = opts.CountryName
+	vars["stateOrProvinceName"] = opts.StateOrProvinceName
+	vars["localityName"] = opts.LocalityName
+	vars["emailAddress"] = opts.EmailAddress
+	vars["basicConstr"] = opts.BasicConstraints
 
 	var output bytes.Buffer
 	if err := tmpl.Execute(&output, vars); err != nil {
