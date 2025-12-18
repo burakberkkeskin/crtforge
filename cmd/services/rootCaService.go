@@ -36,7 +36,6 @@ type CreateRootCAOptions struct {
 	BasicConstraints string
 }
 
-// func CreateRootCa(CaDir string) (string, string, string) {
 func CreateRootCa(opts CreateRootCAOptions) (string, string, string) {
 	// Create the default root ca folder if not exists:
 	rootCaDir := opts.ConfigDirectory + "/rootCA"
@@ -109,7 +108,6 @@ func CreateRootCa(opts CreateRootCAOptions) (string, string, string) {
 			"-days", "7305",
 			"-sha256", "-extensions",
 			"v3_ca",
-			// "-subj", "/C=TR/ST=Istanbul/L=Istanbul/O=Crtforge/OU=Crtforge ROOT CA/CN=Crtforge ROOT CA/emailAddress=crtforge@burakberk.dev",
 			"-subj", crtSubject,
 			"-out", rootCaCrtFile)
 		createRootCaCrtCmd.Dir = rootCaDir

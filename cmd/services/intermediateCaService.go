@@ -17,8 +17,6 @@ import (
 //go:embed intermediateCaCnf.tmpl
 var intermediateCACnfTmpl []byte
 
-// var CustomintermediateCACnfFile []byte
-
 type CreateIntermediateCAOptions struct {
 	// ConfigDirectory is the config directory for crtforge
 	ConfigDirectory string
@@ -126,7 +124,7 @@ func CreateIntermediateCa(opts CreateIntermediateCAOptions) IntermediateCA {
 		createIntermediateCaCsrCmd.Dir = intermediateCaDir
 		err = createIntermediateCaCsrCmd.Run()
 		if err != nil {
-			log.Fatal("Error while creating Intermediate CA Csr: ", err, crtSubject)
+			log.Fatal("Error while creating Intermediate CA Csr: ", err)
 		}
 		log.Debug("Intermediate CA Csr generated at ", intermediateCaCsrFile)
 	} else {
@@ -149,7 +147,6 @@ func CreateIntermediateCa(opts CreateIntermediateCAOptions) IntermediateCA {
 		createIntermediateCaCrtCmd.Dir = intermediateCaDir
 		err = createIntermediateCaCrtCmd.Run()
 		if err != nil {
-			log.Error("createIntermeditateCaCrtCmd", createIntermediateCaCrtCmd)
 			log.Fatal("Error while creating Intermediate CA Crt: ", err)
 		}
 		log.Debug("Intermediate CA Crt generated at ", intermediateCaCrtFile)

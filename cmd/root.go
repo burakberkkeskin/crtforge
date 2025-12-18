@@ -55,7 +55,6 @@ func rootRun(cmd *cobra.Command, args []string) {
 	createConfigDir(configDirectory)
 	defaultCADir := services.CreateCaDir(configDirectory, caName)
 
-	// defaultCARootCACrt, defaultCARootCACnf, defaultCARootCAkey := services.CreateRootCa(defaultCADir)
 	defaultCARootCACrt, defaultCARootCACnf, defaultCARootCAkey := services.CreateRootCa(services.CreateRootCAOptions{
 		ConfigDirectory:     defaultCADir,
 		EmailAddress:        emailAddress,
