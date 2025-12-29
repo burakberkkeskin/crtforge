@@ -140,11 +140,11 @@ You can create multiple application certs under same rootCA.
 ### Custom attributes for root and intermediate CA
 
 ```
-`-email` or `-e` for email address, ex -e test@example.com
-`-country` or `-c` for country, ex -c TR
-`-locality` or `-l` for locality, ex -l Turkey
-`-state` or `-s` for state, ex -s Turkey
-`-basicconstraints` or `-b` for basic constraints, ex -b CA:TRUE
+`--email` or `-e` for email address, ex -e test@example.com
+`--country` or `-c` for country, ex -c TR
+`--locality` or `-l` for locality, ex -l Istanbul
+`--state` or `-s` for state, ex -s Istanbul
+`--basicconstraints` or `-b` for basic constraints, ex -b CA:TRUE
 ```
 
 ```

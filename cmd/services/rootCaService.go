@@ -20,10 +20,8 @@ var rootCaCnfTmpl []byte
 type CreateRootCAOptions struct {
 	// ConfigDirectory is the config directory for crtforge
 	ConfigDirectory string
-	// IntermediateCaName is the name of the intermediate ca
-	IntermediateCAName string
-	// RootCaCnf is the root ca cnf file
-	RootCACnf string
+	// RootCaName is the name of the root ca
+	RootCAName string
 	// CountryName is short hand name of the country
 	CountryName string
 	// StateOrProvinceName is the name of the country/state in the country
@@ -99,7 +97,7 @@ func CreateRootCa(opts CreateRootCAOptions) (string, string, string) {
 	rootCaCrtFile := rootCaDir + "/rootCA.crt"
 	if _, err := os.Stat(rootCaCrtFile); os.IsNotExist(err) {
 		log.Debug("Root CA Crt being created.")
-		crtSubject := "/C=" + opts.CountryName + "/ST=" + opts.StateOrProvinceName + "/L=" + opts.LocalityName + "/O=Crtforge/OU=" + opts.IntermediateCAName + "/CN=Crtforge Intermediate CA/emailAddress=" + opts.EmailAddress
+		crtSubject := "/C=" + opts.CountryName + "/ST=" + opts.StateOrProvinceName + "/L=" + opts.LocalityName + "/O=Crtforge/OU=" + opts.RootCAName + "/CN=Crtforge Root CA/emailAddress=" + opts.EmailAddress
 		createRootCaCrtCmd := exec.Command(
 			"openssl", "req",
 			"-config", rootCaCnfFile,

@@ -149,10 +149,10 @@ func init() {
 	rootCmd.Flags().StringVarP(&countryName, "country", "c", "TR", "Set country")
 
 	// Select locality
-	rootCmd.Flags().StringVarP(&localityName, "locality", "l", "Turkey", "Set locality")
+	rootCmd.Flags().StringVarP(&localityName, "locality", "l", "Istanbul", "Set locality")
 
 	// Select state
-	rootCmd.Flags().StringVarP(&stateOrProvinceName, "state", "s", "Turkey", "Set state")
+	rootCmd.Flags().StringVarP(&stateOrProvinceName, "state", "s", "Istanbul", "Set state")
 
 	// Add basic contraints to use
 	rootCmd.Flags().StringVarP(&basicConstraints, "basicconstraints", "b", "CA:FALSE", "Set basic constriants")
