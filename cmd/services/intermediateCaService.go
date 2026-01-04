@@ -24,6 +24,16 @@ type CreateIntermediateCAOptions struct {
 	IntermediateCAName string
 	// RootCaCnf is the root ca cnf file
 	RootCACnf string
+	// CountryName is short hand name of the country
+	CountryName string
+	// StateOrProvinceName is the name of the country/state in the country
+	StateOrProvinceName string
+	// LocalityName
+	LocalityName string
+	// EmailAddress is the email address of the user
+	EmailAddress string
+	// BasicConstraints
+	BasicConstraints string
 }
 
 type IntermediateCA struct {
@@ -85,7 +95,7 @@ func CreateIntermediateCa(opts CreateIntermediateCAOptions) IntermediateCA {
 	intermediateCaCnfFile := intermediateCaDir + "/intermediateCA.cnf"
 	if _, err := os.Stat(intermediateCaCnfFile); os.IsNotExist(err) {
 		log.Debug("Intermediate CA Cnf being created.")
-		intermediateCaCnf, err := prepareIntermediateCnf(intermediateCaDir)
+		intermediateCaCnf, err := prepareIntermediateCnf(intermediateCaDir, opts)
 		if err != nil {
 			log.Fatal("Error while creating Intermediate CA Cnf from template: ", err)
 		}
@@ -102,7 +112,7 @@ func CreateIntermediateCa(opts CreateIntermediateCAOptions) IntermediateCA {
 	intermediateCaCsrFile := intermediateCaDir + "/intermediateCA.csr"
 	if _, err := os.Stat(intermediateCaCsrFile); os.IsNotExist(err) {
 		log.Debug("Intermediate CA Csr being created.")
-		crtSubject := "/C=TR/ST=Istanbul/L=Istanbul/O=Crtforge/OU=" + opts.IntermediateCAName + "/CN=Crtforge Intermediate CA/emailAddress=crtforge@burakberk.dev"
+		crtSubject := "/C=" + opts.CountryName + "/ST=" + opts.StateOrProvinceName + "/L=" + opts.LocalityName + "/O=Crtforge/OU=" + opts.IntermediateCAName + "/CN=Crtforge Intermediate CA/emailAddress=" + opts.EmailAddress
 		createIntermediateCaCsrCmd := exec.Command(
 			"openssl", "req", "-nodes",
 			"-config", intermediateCaCnfFile,
@@ -114,7 +124,7 @@ func CreateIntermediateCa(opts CreateIntermediateCAOptions) IntermediateCA {
 		createIntermediateCaCsrCmd.Dir = intermediateCaDir
 		err = createIntermediateCaCsrCmd.Run()
 		if err != nil {
-			log.Fatal("Error while creating Intermediate CA Crt: ", err)
+			log.Fatal("Error while creating Intermediate CA Csr: ", err)
 		}
 		log.Debug("Intermediate CA Csr generated at ", intermediateCaCsrFile)
 	} else {
@@ -151,13 +161,18 @@ func CreateIntermediateCa(opts CreateIntermediateCAOptions) IntermediateCA {
 	}
 }
 
-func prepareIntermediateCnf(intermediateCaDir string) ([]byte, error) {
+func prepareIntermediateCnf(intermediateCaDir string, opts CreateIntermediateCAOptions) ([]byte, error) {
 	tmpl, err := template.New("intermediateCaCnf").Parse(string(intermediateCACnfTmpl))
 	if err != nil {
 		return nil, err
 	}
 	vars := make(map[string]interface{})
 	vars["dir"] = intermediateCaDir
+	vars["countryName"] = opts.CountryName
+	vars["stateOrProvinceName"] = opts.StateOrProvinceName
+	vars["localityName"] = opts.LocalityName
+	vars["emailAddress"] = opts.EmailAddress
+	vars["basicConstr"] = opts.BasicConstraints
 
 	var output bytes.Buffer
 	if err := tmpl.Execute(&output, vars); err != nil {

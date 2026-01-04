@@ -75,13 +75,13 @@ commonName                      = Common Name
 emailAddress                    = Email Address
 
 # Optionally, specify some defaults.
-countryName_default             = TR
-stateOrProvinceName_default     = Istanbul
-localityName_default            = Istanbul
+countryName_default             = {{.countryName}}
+stateOrProvinceName_default     = {{.stateOrProvinceName}}
+localityName_default            = {{.localityName}}
 0.organizationName_default      = Crtforge
 organizationalUnitName_default  = Crtforge ROOT CA
 commonName_default              = Crtforge ROOT CA
-emailAddress_default            = crtforge@burakberk.dev
+emailAddress_default            = {{.emailAddress}}
 
 [ v3_ca ]
 # Extensions for a typical CA (`man x509v3_config`).
@@ -99,7 +99,7 @@ keyUsage = critical, digitalSignature, cRLSign, keyCertSign
 
 [ usr_cert ]
 # Extensions for client certificates (`man x509v3_config`).
-basicConstraints = CA:FALSE
+basicConstraints = {{.basicConstr}}
 nsCertType = client, email
 nsComment = "OpenSSL Generated Client Certificate"
 subjectKeyIdentifier = hash
@@ -109,7 +109,7 @@ extendedKeyUsage = clientAuth, emailProtection
 
 [ server_cert ]
 # Extensions for server certificates (`man x509v3_config`).
-basicConstraints = CA:FALSE
+basicConstraints = {{.basicConstr}}
 nsCertType = server
 nsComment = "OpenSSL Generated Server Certificate"
 subjectKeyIdentifier = hash
@@ -123,7 +123,7 @@ authorityKeyIdentifier=keyid:always
 
 [ ocsp ]
 # Extension for OCSP signing certificates (`man ocsp`).
-basicConstraints = CA:FALSE
+basicConstraints = {{.basicConstr}}
 subjectKeyIdentifier = hash
 authorityKeyIdentifier = keyid,issuer
 keyUsage = critical, digitalSignature

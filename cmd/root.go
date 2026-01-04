@@ -19,6 +19,11 @@ var outputDir string
 var intermediateCaName string
 var trustRootCrt bool
 var pfx bool
+var emailAddress string
+var countryName string
+var stateOrProvinceName string
+var localityName string
+var basicConstraints string
 
 var version = "v1.0.0"
 var commitId = "abcd"
@@ -50,7 +55,14 @@ func rootRun(cmd *cobra.Command, args []string) {
 	createConfigDir(configDirectory)
 	defaultCADir := services.CreateCaDir(configDirectory, caName)
 
-	defaultCARootCACrt, defaultCARootCACnf, defaultCARootCAkey := services.CreateRootCa(defaultCADir)
+	defaultCARootCACrt, defaultCARootCACnf, defaultCARootCAkey := services.CreateRootCa(services.CreateRootCAOptions{
+		ConfigDirectory:     defaultCADir,
+		EmailAddress:        emailAddress,
+		StateOrProvinceName: stateOrProvinceName,
+		LocalityName:        localityName,
+		CountryName:         countryName,
+		BasicConstraints:    basicConstraints,
+	})
 	_ = defaultCARootCAkey
 
 	if trustRootCrt {
@@ -58,9 +70,14 @@ func rootRun(cmd *cobra.Command, args []string) {
 	}
 
 	intermediateCA := services.CreateIntermediateCa(services.CreateIntermediateCAOptions{
-		ConfigDirectory:    defaultCADir,
-		IntermediateCAName: intermediateCaName,
-		RootCACnf:          defaultCARootCACnf,
+		ConfigDirectory:     defaultCADir,
+		RootCACnf:           defaultCARootCACnf,
+		IntermediateCAName:  intermediateCaName,
+		EmailAddress:        emailAddress,
+		StateOrProvinceName: stateOrProvinceName,
+		LocalityName:        localityName,
+		CountryName:         countryName,
+		BasicConstraints:    basicConstraints,
 	})
 
 	// If output directory is not provided, use the default ca directory
@@ -124,6 +141,21 @@ func init() {
 
 	// Select output directory for the
 	rootCmd.Flags().StringVarP(&outputDir, "output", "o", "", "Set output directory for the certs.")
+
+	// Select email ID to use
+	rootCmd.Flags().StringVarP(&emailAddress, "email", "e", "test@example.com", "Set email ID to use to generate the certs")
+
+	// Select country
+	rootCmd.Flags().StringVarP(&countryName, "country", "c", "TR", "Set country")
+
+	// Select locality
+	rootCmd.Flags().StringVarP(&localityName, "locality", "l", "Istanbul", "Set locality")
+
+	// Select state
+	rootCmd.Flags().StringVarP(&stateOrProvinceName, "state", "s", "Istanbul", "Set state")
+
+	// Add basic contraints to use
+	rootCmd.Flags().StringVarP(&basicConstraints, "basicconstraints", "b", "CA:FALSE", "Set basic constriants")
 
 	// Example usages:
 	rootCmd.Example = `Generate a cert under the default root and the default intermediate ca: 

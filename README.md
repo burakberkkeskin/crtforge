@@ -137,6 +137,20 @@ And last, your application's cert files are being created under the a folder nam
 
 You can create multiple application certs under same rootCA.
 
+### Custom attributes for root and intermediate CA
+
+```
+`--email` or `-e` for email address, ex -e test@example.com
+`--country` or `-c` for country, ex -c TR
+`--locality` or `-l` for locality, ex -l Istanbul
+`--state` or `-s` for state, ex -s Istanbul
+`--basicconstraints` or `-b` for basic constraints, ex -b CA:TRUE
+```
+
+```
+crtforge test api.test.com -e test@example.com -c TR -l Turkey -s Turkey -b CA:TRUE
+```
+
 ## Create Custom Root CA
 
 If you need a brand new chain, you can create a new rootCA with `--rootCa` flag.
