@@ -65,7 +65,6 @@ func rootRun(cmd *cobra.Command, args []string) {
 		LocalityName:        localityName,
 		CountryName:         countryName,
 		BasicConstraints:    basicConstraints,
-		Renew:              renew,
 	})
 	_ = defaultCARootCAkey
 
@@ -82,7 +81,6 @@ func rootRun(cmd *cobra.Command, args []string) {
 		LocalityName:        localityName,
 		CountryName:         countryName,
 		BasicConstraints:    basicConstraints,
-		Renew:              renew,
 	})
 
 	// If output directory is not provided, use the default ca directory
