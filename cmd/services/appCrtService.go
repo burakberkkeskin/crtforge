@@ -36,6 +36,8 @@ type CreateAppCrtOptions struct {
 	AltNames []string
 	// P12 is the flag for creating p12 files
 	P12 bool
+	// Renew is if we want to renew certificates
+	Renew bool
 }
 
 func CreateAppCrt(opts CreateAppCrtOptions) {

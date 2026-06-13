@@ -34,6 +34,8 @@ type CreateIntermediateCAOptions struct {
 	EmailAddress string
 	// BasicConstraints
 	BasicConstraints string
+	// Renew is if we want to renew certificates
+	Renew bool
 }
 
 type IntermediateCA struct {
@@ -61,7 +63,7 @@ func CreateIntermediateCa(opts CreateIntermediateCAOptions) IntermediateCA {
 
 	// Create intermediate ca key file
 	intermediateCaKeyFile := intermediateCaDir + "/intermediateCA.key"
-	if _, err := os.Stat(intermediateCaKeyFile); os.IsNotExist(err) {
+	if _, err := os.Stat(intermediateCaKeyFile); os.IsNotExist(err) || opts.Renew {
 		log.Debug("Intermediate CA Key is being created.")
 		caPrivKey, err := rsa.GenerateKey(rand.Reader, 4096)
 		if err != nil {
@@ -93,7 +95,7 @@ func CreateIntermediateCa(opts CreateIntermediateCAOptions) IntermediateCA {
 	// Create intermediate ca cnf file
 
 	intermediateCaCnfFile := intermediateCaDir + "/intermediateCA.cnf"
-	if _, err := os.Stat(intermediateCaCnfFile); os.IsNotExist(err) {
+	if _, err := os.Stat(intermediateCaCnfFile); os.IsNotExist(err) || opts.Renew {
 		log.Debug("Intermediate CA Cnf being created.")
 		intermediateCaCnf, err := prepareIntermediateCnf(intermediateCaDir, opts)
 		if err != nil {

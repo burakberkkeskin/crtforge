@@ -24,6 +24,8 @@ var countryName string
 var stateOrProvinceName string
 var localityName string
 var basicConstraints string
+var renew bool
+
 
 var version = "v1.0.0"
 var commitId = "abcd"
@@ -57,11 +59,13 @@ func rootRun(cmd *cobra.Command, args []string) {
 
 	defaultCARootCACrt, defaultCARootCACnf, defaultCARootCAkey := services.CreateRootCa(services.CreateRootCAOptions{
 		ConfigDirectory:     defaultCADir,
+		RootCAName:          caName,
 		EmailAddress:        emailAddress,
 		StateOrProvinceName: stateOrProvinceName,
 		LocalityName:        localityName,
 		CountryName:         countryName,
 		BasicConstraints:    basicConstraints,
+		Renew:              renew,
 	})
 	_ = defaultCARootCAkey
 
@@ -78,6 +82,7 @@ func rootRun(cmd *cobra.Command, args []string) {
 		LocalityName:        localityName,
 		CountryName:         countryName,
 		BasicConstraints:    basicConstraints,
+		Renew:              renew,
 	})
 
 	// If output directory is not provided, use the default ca directory
@@ -94,6 +99,7 @@ func rootRun(cmd *cobra.Command, args []string) {
 		CommonName:        appDomains[0],
 		AltNames:          appDomains,
 		P12:               pfx,
+		Renew:            renew,
 	})
 }
 
@@ -126,6 +132,9 @@ func init() {
 
 	// Select if you want to trust to the root ca
 	rootCmd.Flags().BoolVarP(&trustRootCrt, "trust", "t", false, "Trust the root ca crt.")
+
+	// Select if you want to renew certificates
+	rootCmd.Flags().BoolVarP(&renew, "renew", "r", false, "Renew certificates.")
 
 	// Select if you want to enable debug mode logging
 	rootCmd.PersistentFlags().BoolVarP(&debug, "debug", "d", false, "verbose logging")

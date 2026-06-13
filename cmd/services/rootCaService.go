@@ -32,6 +32,8 @@ type CreateRootCAOptions struct {
 	EmailAddress string
 	// BasicConstraints
 	BasicConstraints string
+	// Renew is if we want to renew certificates
+	Renew bool
 }
 
 func CreateRootCa(opts CreateRootCAOptions) (string, string, string) {
@@ -50,7 +52,7 @@ func CreateRootCa(opts CreateRootCAOptions) (string, string, string) {
 
 	// Create rootCA key
 	rootCaKeyFile := rootCaDir + "/rootCA.key"
-	if _, err := os.Stat(rootCaKeyFile); os.IsNotExist(err) {
+	if _, err := os.Stat(rootCaKeyFile); os.IsNotExist(err) || opts.Renew {
 		log.Debug("Root CA Key is being created.")
 		caPrivKey, err := rsa.GenerateKey(rand.Reader, 4096)
 		if err != nil {
@@ -78,7 +80,7 @@ func CreateRootCa(opts CreateRootCAOptions) (string, string, string) {
 
 	// Create default CA root CA cnf file
 	rootCaCnfFile := rootCaDir + "/rootCA.cnf"
-	if _, err := os.Stat(rootCaCnfFile); os.IsNotExist(err) {
+	if _, err := os.Stat(rootCaCnfFile); os.IsNotExist(err) || opts.Renew {
 		log.Debug("Root CA Cnf being created.")
 		rootCaCnf, err := prepareRootCnf(rootCaDir, opts)
 		if err != nil {
