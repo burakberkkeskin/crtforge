@@ -24,6 +24,7 @@ var countryName string
 var stateOrProvinceName string
 var localityName string
 var basicConstraints string
+var renew bool
 
 var version = "v1.0.0"
 var commitId = "abcd"
@@ -55,30 +56,53 @@ func rootRun(cmd *cobra.Command, args []string) {
 	createConfigDir(configDirectory)
 	defaultCADir := services.CreateCaDir(configDirectory, caName)
 
-	defaultCARootCACrt, defaultCARootCACnf, defaultCARootCAkey := services.CreateRootCa(services.CreateRootCAOptions{
-		ConfigDirectory:     defaultCADir,
-		EmailAddress:        emailAddress,
-		StateOrProvinceName: stateOrProvinceName,
-		LocalityName:        localityName,
-		CountryName:         countryName,
-		BasicConstraints:    basicConstraints,
-	})
-	_ = defaultCARootCAkey
+	var rootCrt, rootCnf, rootKey string
+	var interCrt, interCnf, interKey string
 
-	if trustRootCrt {
-		services.TrustCrt(defaultCARootCACrt)
+	if renew {
+		// Use existing CA certificates if renewing leaf certificate
+		rootCrt = defaultCADir + "/rootCA/rootCA.crt"
+		rootCnf = defaultCADir + "/rootCA/rootCA.cnf"
+		rootKey = defaultCADir + "/rootCA/rootCA.key"
+
+		interCrt = defaultCADir + "/" + intermediateCaName + "/intermediateCA.crt"
+		interCnf = defaultCADir + "/" + intermediateCaName + "/intermediateCA.cnf"
+		interKey = defaultCADir + "/" + intermediateCaName + "/intermediateCA.key"
+
+		if _, err := os.Stat(rootCrt); os.IsNotExist(err) {
+			log.Fatal("Cannot renew: Root CA certificate not found. Run without --renew to create them.")
+		}
+		if _, err := os.Stat(interCrt); os.IsNotExist(err) {
+			log.Fatal("Cannot renew: Intermediate CA certificate not found. Run without --renew to create them.")
+		}
+	} else {
+		rootCrt, rootCnf, rootKey = services.CreateRootCa(services.CreateRootCAOptions{
+			ConfigDirectory:     defaultCADir,
+			EmailAddress:        emailAddress,
+			StateOrProvinceName: stateOrProvinceName,
+			LocalityName:        localityName,
+			CountryName:         countryName,
+			BasicConstraints:    basicConstraints,
+		})
+
+		if trustRootCrt {
+			services.TrustCrt(rootCrt)
+		}
+
+		intermediateCA := services.CreateIntermediateCa(services.CreateIntermediateCAOptions{
+			ConfigDirectory:     defaultCADir,
+			RootCACnf:           rootCnf,
+			IntermediateCAName:  intermediateCaName,
+			EmailAddress:        emailAddress,
+			StateOrProvinceName: stateOrProvinceName,
+			LocalityName:        localityName,
+			CountryName:         countryName,
+			BasicConstraints:    basicConstraints,
+		})
+		interCrt = intermediateCA.IntermediateCACrt
+		interCnf = intermediateCA.IntermediateCACnf
+		interKey = intermediateCA.IntermediateCAKey
 	}
-
-	intermediateCA := services.CreateIntermediateCa(services.CreateIntermediateCAOptions{
-		ConfigDirectory:     defaultCADir,
-		RootCACnf:           defaultCARootCACnf,
-		IntermediateCAName:  intermediateCaName,
-		EmailAddress:        emailAddress,
-		StateOrProvinceName: stateOrProvinceName,
-		LocalityName:        localityName,
-		CountryName:         countryName,
-		BasicConstraints:    basicConstraints,
-	})
 
 	// If output directory is not provided, use the default ca directory
 	if outputDir == "" {
@@ -86,10 +110,10 @@ func rootRun(cmd *cobra.Command, args []string) {
 	}
 	services.CreateAppCrt(services.CreateAppCrtOptions{
 		OutputDir:         outputDir,
-		IntermediateCACnf: intermediateCA.IntermediateCACnf,
-		IntermediateCACrt: intermediateCA.IntermediateCACrt,
-		IntermediateCAKey: intermediateCA.IntermediateCAKey,
-		RootCACrt:         defaultCARootCACrt,
+		IntermediateCACnf: interCnf,
+		IntermediateCACrt: interCrt,
+		IntermediateCAKey: interKey,
+		RootCACrt:         rootCrt,
 		AppName:           appName,
 		CommonName:        appDomains[0],
 		AltNames:          appDomains,
@@ -136,10 +160,8 @@ func init() {
 	// Select if you want pfx file
 	rootCmd.Flags().BoolVarP(&pfx, "pfx", "p", false, "Create pfx file.")
 
-	// Select custom intermediate ca
-	rootCmd.Flags().StringVarP(&intermediateCaName, "intermediate-ca", "i", "intermediateCA", "Set Intermediate CA Name.")
-
-	// Select output directory for the
+	// Select if you want to renew leaf certificates
+	rootCmd.Flags().BoolVarP(&renew, "renew", "R", false, "Renew leaf certificates.")
 	rootCmd.Flags().StringVarP(&outputDir, "output", "o", "", "Set output directory for the certs.")
 
 	// Select email ID to use
