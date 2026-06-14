@@ -4,25 +4,27 @@
 
 Crtforge is a cli tool which can generate a full chain self signed ssl certificate that includes root, intermediate, and application certificates.
 
-👉🏻 You can act as your own local certificate authority for self-hosted home lab apps. Just create a series of application certs under the same root CA.
+👉🏻 You can act as your own local certificate authority for self-hosted home lab apps. Just create a series of application certs under the same root CA.
 
 👉🏻 For development purposes, you can easily generate a large number of full-chain certificates.
+
+## 📚 Documentation
+
+- [Architecture](docs/architecture.md): Deep dive into the PKI model and certificate generation flow.
+- [Usage Guide](docs/usage.md): Practical examples and common CLI usage scenarios.
+- [Development Guide](docs/development.md): Guidelines for contributors, including testing and PR strategy.
 
 ## 📖 Table of Contents
 
 - [🔒 Overview](#-overview)
+- [📚 Documentation](#-documentation)
 - [📖 Table of Contents](#-table-of-contents)
 - [Install Crtforge](#install-crtforge)
-  - [Install Locally (Recommended)](#install-locally-recommended)
-  - [Run With Docker](#run-with-docker)
-  - [Building From Source](#building-from-source)
 - [Quick Start](#quick-start)
 - [Trusting Self Signed Root CA](#trusting-self-signed-root-ca)
 - [Config File Structure](#config-file-structure)
 - [Create Custom Root CA](#create-custom-root-ca)
 - [Create Custom Intermediate CA](#create-custom-intermediate-ca)
-    - [Under Default Root CA](#under-default-root-ca)
-    - [Under Custom Root CA](#under-custom-root-ca)
 - [Create PFX Certificate](#create-pfx-certificate)
 - [Release a version](#release-a-version)
 
@@ -220,7 +222,7 @@ Example:
 crtforge --root-ca MedicalCompany --intermediate-ca Backend apigateway apigw.mymedicalcompany.com
 crtforge -r MedicalCompany -i Frontend website mymedicalcompany.com app.mymedicalcompany.com
 
-crtforge --root-ca FinanceCompany --intermediate-ca Backend apigateway apigw.myfinancecompany.com
+crtforge --root-ca FinanceCompany --intermediate-ca Backend apigw.myfinancecompany.com
 crtforge -r FinanceCompany -i Frontend website myfinancecompany.com app.myfinancecompany.com
 ```
 
@@ -239,8 +241,8 @@ Root CA ("MedicalCompany")
   |      |
   |      |-- App 2 ("website")
   |            |
-  |            |-- mymedicalcompany.com
-  |            |-- app.mymedicalcompany.com
+  |            |-- myapp.com
+  |            |-- app.myapp.com
 
   Root CA ("FinanceCompany")
   |
