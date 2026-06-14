@@ -8,21 +8,23 @@ Crtforge is a cli tool which can generate a full chain self signed ssl certific
 
 👉🏻 For development purposes, you can easily generate a large number of full-chain certificates.
 
+## 📚 Documentation
+
+- [Architecture](docs/architecture.md): Deep dive into the PKI model and certificate generation flow.
+- [Usage Guide](docs/usage.md): Practical examples and common CLI usage scenarios.
+- [Development Guide](docs/development.md): Guidelines for contributors, including testing and PR strategy.
+
 ## 📖 Table of Contents
 
 - [🔒 Overview](#-overview)
+- [📚 Documentation](#-documentation)
 - [📖 Table of Contents](#-table-of-contents)
 - [Install Crtforge](#install-crtforge)
-  - [Install Locally (Recommended)](#install-locally-recommended)
-  - [Run With Docker](#run-with-docker)
-  - [Building From Source](#building-from-source)
 - [Quick Start](#quick-start)
 - [Trusting Self Signed Root CA](#trusting-self-signed-root-ca)
 - [Config File Structure](#config-file-structure)
 - [Create Custom Root CA](#create-custom-root-ca)
 - [Create Custom Intermediate CA](#create-custom-intermediate-ca)
-    - [Under Default Root CA](#under-default-root-ca)
-    - [Under Custom Root CA](#under-custom-root-ca)
 - [Create PFX Certificate](#create-pfx-certificate)
 - [Release a version](#release-a-version)
 
