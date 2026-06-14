@@ -4,7 +4,7 @@
 
 Crtforge is a cli tool which can generate a full chain self signed ssl certificate that includes root, intermediate, and application certificates.
 
-👉🏻 You can act as your own local certificate authority for self-hosted home lab apps. Just create a series of application certs under the same root CA.
+👉🏻 You can act as your own local certificate authority for self-hosted home lab apps. Just create a series of application certs under the same root CA.
 
 👉🏻 For development purposes, you can easily generate a large number of full-chain certificates.
 
@@ -222,7 +222,7 @@ Example:
 crtforge --root-ca MedicalCompany --intermediate-ca Backend apigateway apigw.mymedicalcompany.com
 crtforge -r MedicalCompany -i Frontend website mymedicalcompany.com app.mymedicalcompany.com
 
-crtforge --root-ca FinanceCompany --intermediate-ca Backend apigw.myfinancecompany.com
+crtforge --root-ca FinanceCompany --intermediate-ca Backend apigateway apigw.myfinancecompany.com
 crtforge -r FinanceCompany -i Frontend website myfinancecompany.com app.myfinancecompany.com
 ```
 
@@ -241,8 +241,8 @@ Root CA ("MedicalCompany")
   |      |
   |      |-- App 2 ("website")
   |            |
-  |            |-- myapp.com
-  |            |-- app.myapp.com
+  |            |-- mymedicalcompany.com
+  |            |-- app.mymedicalcompany.com
 
   Root CA ("FinanceCompany")
   |
