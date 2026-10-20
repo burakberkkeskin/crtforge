@@ -1,306 +1,125 @@
-![image](https://github.com/safderun/crtforge/assets/58513283/59198e2d-abd3-4f29-bd4c-a0a3f160c8b8)
+# crtforge
 
-## 🔒 Overview
+crtforge is a small private certificate authority for test and lab environments. One command creates a root CA and an intermediate; another issues a TLS certificate signed by that intermediate, along with its full chain.
 
-Crtforge is a cli tool which can generate a full chain self signed ssl certificate that includes root, intermediate, and application certificates.
+The certificates carry CRL Distribution Points and Authority Information Access (AIA), so clients that check revocation accept them too. Some .NET stacks, MailKit for example, keep revocation checking on and reject a private chain that has no CRL.
 
-👉🏻 You can act as your own local certificate authority for self-hosted home lab apps. Just create a series of application certs under the same root CA.
+- Root → intermediate → leaf, built in Go with no `openssl` dependency.
+- CRLs for the root and each intermediate, plus `revoke`, so you can test revoked-certificate behaviour.
+- certbot-style output: `fullchain.pem`, `privkey.pem`, `cert.pem`, `chain.pem`, plus `ca.pem` (the root).
+- RSA (default) or ECDSA, optional name constraints, optional PKCS #12 (`.pfx`).
+- Leaf validity is capped at 825 days, the limit Apple platforms enforce even for private CAs.
+- crtforge never changes a trust store. `crtforge inspect` prints the commands for macOS, Debian/Ubuntu, RHEL/Fedora and Java.
 
-👉🏻 For development purposes, you can easily generate a large number of full-chain certificates.
-
-## 📚 Documentation
-
-- [Architecture](docs/architecture.md): Deep dive into the PKI model and certificate generation flow.
-- [Usage Guide](docs/usage.md): Practical examples and common CLI usage scenarios.
-- [Development Guide](docs/development.md): Guidelines for contributors, including testing and PR strategy.
-
-## 📖 Table of Contents
-
-- [🔒 Overview](#-overview)
-- [📚 Documentation](#-documentation)
-- [📖 Table of Contents](#-table-of-contents)
-- [Install Crtforge](#install-crtforge)
-- [Quick Start](#quick-start)
-- [Trusting Self Signed Root CA](#trusting-self-signed-root-ca)
-- [Config File Structure](#config-file-structure)
-- [Create Custom Root CA](#create-custom-root-ca)
-- [Create Custom Intermediate CA](#create-custom-intermediate-ca)
-- [Create PFX Certificate](#create-pfx-certificate)
-- [Release a version](#release-a-version)
-
-## Install Crtforge
-
-### Install Locally (Recommended)
-
-The binaries can be downloaded from the release page.
-
-Simply execute the following commands to install crtforge on Linux and macOS:
+## Install
 
 ```bash
-sudo curl -L -o /usr/local/bin/crtforge "https://github.com/burakberkkeskin/crtForge/releases/latest/download/crtforge-$(uname -s)-$(uname -m)" && \
-sudo chmod +x /usr/local/bin/crtforge
+curl -fsSL -o crtforge "https://github.com/burakberkkeskin/crtforge/releases/latest/download/crtforge-$(uname -s)-$(uname -m)" && \
+  chmod +x crtforge && sudo mv crtforge /usr/local/bin/
 ```
 
-### Run With Docker
+Every release has a `SHA256SUMS` file. With Go installed you can also run `go install github.com/burakberkkeskin/crtforge@latest`.
 
-You don't need to install crtforge. You can create a alias and use crtforge almost like the same.
+## Quick start
 
 ```bash
-alias crtforge="docker run -it --rm -v "$HOME/.config":/root/.config safderun/crtforge:latest" && \
-crtforge --version
+# 1. Create a CA. The base URL is where its CRLs and CA certificates will be served.
+crtforge init --ca lab --base-url http://pki.example.test
+
+# 2. Issue a certificate (the first name becomes the common name; quote wildcards).
+crtforge issue --ca lab web app.example.test "*.example.test" 10.0.0.5
+
+# 3. Serve the publish directory at the base URL (see below).
+
+# 4. Trust the root on the clients (crtforge prints the commands).
+crtforge inspect --ca lab
 ```
 
-You should see the version of the crtforge container.
+`export CRTFORGE_CA=lab` saves typing `--ca` every time.
 
-### Building From Source
+The certificate files land in `~/.local/share/crtforge/ca/lab/certs/web/`:
 
-You can build the crtforge on your own machine.
+| File | Content | Use |
+|---|---|---|
+| `fullchain.pem` | leaf + intermediate | what a server presents (nginx `ssl_certificate`, Caddy, Traefik, ...) |
+| `privkey.pem` | leaf key, PKCS #8 | the server key |
+| `cert.pem` | leaf | tools that want the chain split |
+| `chain.pem` | intermediate | |
+| `ca.pem` | root | trust stores, `--cacert`, "CA certificate" fields |
+| `cert.pfx` | key + leaf + intermediate + root | with `--pfx` (password `--pfx-password`, default `changeit`) |
 
-To build, you should have go installed on your machine.
+## Publishing CRLs
 
-To build, run the commands below:
+Every certificate points at `<base-url>/<ca>/<issuer>.crl` (CRL Distribution Point) and `<base-url>/<ca>/<issuer>.crt` (AIA). crtforge writes these files to `~/.local/share/crtforge/publish/<ca>/`. Serve that directory over **plain HTTP**. HTTPS would make the CRL fetch depend on the TLS it is meant to check.
+
+Example with Caddy (an explicit `http://` site, so Caddy does not redirect to HTTPS):
+
+```caddyfile
+http://pki.example.test {
+	root * /srv/pki
+	file_server
+	@crl path *.crl
+	header @crl Content-Type application/pkix-crl
+	@crt path *.crt
+	header @crt Content-Type application/pkix-cert
+}
+```
 
 ```bash
-git clone https://github.com/safderun/crtforge.git && \
-  cd crtforge && \
-  version=$(git describe --tags --abbrev=0) && \
-  commitId=$(git --no-pager log -1 --oneline | awk '{print $1}') && \
-  go build -ldflags "-X crtforge/cmd.version=$version -X crtforge/cmd.commitId=$commitId" -o crtforge -v .
+rsync -a ~/.local/share/crtforge/publish/ webhost:/srv/pki/
 ```
 
-## Quick Start
+Some clients check revocation: .NET with `X509RevocationMode.Online`, MailKit, Windows Schannel, and Java when revocation checking is enabled. These clients download the CRL and reject the chain when it is unreachable, not signed by the issuer, or past its next update. CRLs are valid for 365 days by default. Run `crtforge crl` and publish again before they expire; `crtforge list` warns 30 days ahead. The validity is set with `--crl-days` when the CA is created and cannot be changed later. If you never revoke, use `--crl-days 3650` and there is nothing to renew (see [docs/usage.md](docs/usage.md#a-ca-you-never-revoke-from)).
 
-📄 You can create the fullchain certificate within a second:
+Without `--base-url`, certificates carry no CDP or AIA. That is fine for clients that never check revocation (browsers, curl, Go), but strict clients will reject the chain.
+
+## Commands
+
+| Command | What it does |
+|---|---|
+| `init` | Create a root CA and its first intermediate (`--base-url`, `--key-type rsa\|ecdsa`, `--permit-dns`, `--permit-ip`, validity flags) |
+| `issue <name> <dns-or-ip>...` | Issue a TLS certificate (`--days` up to 825, `--client` for mTLS, `--intermediate`, `--pfx`, `--force`) |
+| `renew <name>` | New key and certificate with the recorded names and settings |
+| `revoke <name>` | Revoke a certificate (`--reason keyCompromise\|superseded\|...`) and re-sign the CRL |
+| `crl` | Re-sign every CRL of the CA with a new next update |
+| `add-intermediate <name>` | Issue another intermediate under the root |
+| `list [--all]` | CAs, intermediates and certificates with expiry, revocation and CRL status |
+| `inspect [name]` | Paths, fingerprints and trust commands for the CA, or details of one certificate |
+| `import-v1 <dir>` | Adopt a crtforge v1 root CA and issue a new intermediate under it |
+
+Run `crtforge <command> --help` for every flag. See [docs/usage.md](docs/usage.md) for walkthroughs.
+
+## Where data lives
+
+`$CRTFORGE_HOME`, else `$XDG_DATA_HOME/crtforge`, else `~/.local/share/crtforge`:
+
+```text
+ca/<ca>/ca.json                          settings (base URL, key type, CRL validity)
+ca/<ca>/root/{cert.pem,privkey.pem,state.json}
+ca/<ca>/intermediates/<name>/{cert.pem,privkey.pem,state.json}
+ca/<ca>/certs/<name>/...                 the files in the table above, plus meta.json
+publish/<ca>/{root,<intermediate>}.{crt,crl}
+```
+
+Private keys are `0600` in `0700` directories; the publish tree is world-readable (`0755` / `0644`) so it can be copied to a web server as is. Keys are not encrypted, so treat the directory as a secret and back it up as one.
+
+## Upgrading from v1
+
+v2 is a rewrite and does not read v1's layout. It also lives in a different directory: v1 used `~/.config/crtforge`, which v2 never touches. To keep a v1 root that machines already trust:
 
 ```bash
-$ crtforge myApp api.myapp.com app.myapp.com
-
-App certs created successfully.
-App name: myApp
-Domains: [api.myapp.com app.myapp.com]
-To see your cert files, please check the dir: /home/ubuntu/.config/crtforge/default/myApp
+crtforge import-v1 --ca mylab --base-url http://pki.example.test ~/.config/crtforge/<v1-ca-name>
 ```
 
-⭐ You can also create a certificate with wildcard domain:
+The v1 root is copied as is, so existing trust keeps working. A new intermediate with CRL Distribution Points is issued under it; re-issue leaf certificates with v2 to get CDP and AIA. Other changes since v1:
 
-⚠️ Please place your domain between double quotes ("example.com") like the example below.
+- Subcommands replace the single positional command, and `--ca` replaces `-r`.
+- certbot file names replace `<app>.crt` / `<app>.key`. `fullchain.pem` no longer includes the root; the root is in `ca.pem`.
+- `--trust` is gone; see `crtforge inspect`.
+- The Docker image is gone.
 
-```bash
-$ ./crtforge mySecondApp "*.example.com"
+## Documentation
 
-App certs created successfully.
-App name: app8
-Domains: [*.example.com]
-To see your cert files, please check the dir: /home/ubuntu/.config/crtforge/testing/app8
-```
-
-🎉 Ta-Da Your certs are ready.
-
-```bash
-$ ls -l $HOME/.config/crtforge/default/myApp
-
-total 24
--rw-rw-r-- 1 ubuntu ubuntu 5477 Aug 18 23:06 fullchain.crt
--rwxrwxr-x 1 ubuntu ubuntu  320 Aug 18 23:06 myApp.cnf
--rw-rw-r-- 1 ubuntu ubuntu 1395 Aug 18 23:06 myApp.crt
--rw-rw-r-- 1 ubuntu ubuntu  944 Aug 18 23:06 myApp.csr
--rw------- 1 ubuntu ubuntu 1704 Aug 18 23:06 myApp.key
-```
-
-You can use the `fullchain.crt` `myApp.key` in web servers like nginx, apache or mock servers.
-
-## Trusting Self Signed Root CA
-
-By default, if you create a web server with the fullchain cert, and make a http request, you will get self signed cert error.
-
-To solve this, all you need to do is add a --trust or -t flag to crtforge.
-
-For example:
-
-```bash
-# Create a app cert and trust the root cert of it
-crtforge landingpage example.com --trust
-
-# You can also use --trust flag with --root-ca flag for a custom root ca
-crtforge -r medical backend api.example.com auth.example.com
-```
-
-> :information_source: Recommendation
-> If you plan to use the app certs for long time for example on-prem home lab apps, create them with same root ca and trust only that root ca.
-> So you don't need to trust all app certs one by one.
-
-## Config File Structure
-
-When you run the cli application without `--rootCa` flag, it creates a `default` in $HOME/.config/crtforge.
-
-After that, rootCA and intermediateCA is created under that folder.
-
-And last, your application's cert files are being created under the a folder named your app.
-
-You can create multiple application certs under same rootCA.
-
-### Custom attributes for root and intermediate CA
-
-```
-`--email` or `-e` for email address, ex -e test@example.com
-`--country` or `-c` for country, ex -c TR
-`--locality` or `-l` for locality, ex -l Istanbul
-`--state` or `-s` for state, ex -s Istanbul
-`--basicconstraints` or `-b` for basic constraints, ex -b CA:TRUE
-```
-
-```
-crtforge test api.test.com -e test@example.com -c TR -l Turkey -s Turkey -b CA:TRUE
-```
-
-## Create Custom Root CA
-
-If you need a brand new chain, you can create a new rootCA with `--rootCa` flag.
-
-For example:
-
-```bash
-crtforge --root-ca customRootCa myApp api.myapp.com app.myapp.com
-```
-
-After the command returns, a custom root ca named `customRootCa` has been created under `$HOME/.config/crtforge`.
-
-The folder structure is same as default.
-
-You can get the application certificates under `$HOME/.config/crtforge/customRootCa/myApp`
-
-If you wwant custom application certificate directory, you can use `--output, -o` flag. 
-
-For example:
-
-```bash
-crtforge --root-ca customRootCa --output /home/ubuntu myApp api.myapp.com app.myapp.com
-```
-
-## Create Custom Intermediate CA
-
-#### Under Default Root CA
-
-If you want to create a custom intermediate CA under the default root CA, you can use the --intermediate-ca or -i flag.
-
-For example:
-
-```bash
-crtforge --intermediate-ca Backend apigateway apigw.myapp.com
-crtforge -i Frontend website myapp.com app.myapp.com
-```
-
-This two commands will create two self signed cert under two intermediate ca which are under the default root ca.
-The folder structure will be like below 👇
-
-```
-Root CA ("default")
-  |
-  |-- Intermediate CA 1 ("Backend")
-  |      |
-  |      |-- App 1 ("apigateway")
-  |            |
-  |            |-- apigw.myapp.com
-  |
-  |-- Intermediate CA 2 ("Frontend")
-  |      |
-  |      |-- App 2 ("website")
-  |            |
-  |            |-- myapp.com
-  |            |-- app.myapp.com
-```
-
-#### Under Custom Root CA
-
-You can also create multiple intermediate CAs under a custom root ca if you want.
-
-All you need to do is combining custom root ca flag and custom intermediate ca flag.
-
-Example:
-
-```bash
-crtforge --root-ca MedicalCompany --intermediate-ca Backend apigateway apigw.mymedicalcompany.com
-crtforge -r MedicalCompany -i Frontend website mymedicalcompany.com app.mymedicalcompany.com
-
-crtforge --root-ca FinanceCompany --intermediate-ca Backend apigateway apigw.myfinancecompany.com
-crtforge -r FinanceCompany -i Frontend website myfinancecompany.com app.myfinancecompany.com
-```
-
-The cert structure will be same as above except the rootCA name.
-
-```
-Root CA ("MedicalCompany")
-  |
-  |-- Intermediate CA 1 ("Backend")
-  |      |
-  |      |-- App 1 ("apigateway")
-  |            |
-  |            |-- apigw.mymedicalcompany.com
-  |
-  |-- Intermediate CA 2 ("Frontend")
-  |      |
-  |      |-- App 2 ("website")
-  |            |
-  |            |-- mymedicalcompany.com
-  |            |-- app.mymedicalcompany.com
-
-  Root CA ("FinanceCompany")
-  |
-  |-- Intermediate CA 1 ("Backend")
-  |      |
-  |      |-- App 1 ("apigateway")
-  |            |
-  |            |-- apigw.myfinancecompany.com
-  |
-  |-- Intermediate CA 2 ("Frontend")
-  |      |
-  |      |-- App 2 ("website")
-  |            |
-  |            |-- myfinancecompany.com
-  |            |-- app.myfinancecompany.com
-```
-
-## Create PFX Certificate
-
-If you want to create certificate also in pfx format, you can add add --pfx or -p flag to your command.
-
-The pfx password is hardcoded and it's "changeit".
-
-- If you want to create a PFX certificate under default root CA:
-
-```bash
-crtforge gitlab gitlab.example.com --pfx
-```
-
-- If you want to create a PFX certificate under custom root and intermediate CA:
-
-```bash
-crtforge --root-ca git-providers --intermediate-ca engineer azure azure.example.com
-```
-
-## Release a version
-
-- Define a version.
-
-```bash
-export crtforgeVersion=v1.4.0
-```
-
-- You should create a release branch from the master
-
-```bash
-git checkout master && git pull && \
-git checkout -b release/${crtforgeVersion}
-```
-
-- Tag the commit
-
-```bash
-git tag --sign ${crtforgeVersion} -m "Added renew feature."
-```
-
-- Push the release branch and tags
-
-```bash
-git push && git push --tags
-```
+- [Usage](docs/usage.md): walkthroughs for common setups.
+- [Architecture](docs/architecture.md): certificate profiles, state, design decisions.
+- [Development](docs/development.md): building, testing, releasing.

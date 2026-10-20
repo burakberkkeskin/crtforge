@@ -1,0 +1,123 @@
+name: CI
+
+on:
+  push:
+    branches: [master]
+    tags: ['v*.*.*']
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+env:
+  GO_VERSION: '1.27.x'
+  # Tools run with `go run` / `go install` at pinned versions.
+  STATICCHECK: honnef.co/go/tools/cmd/staticcheck@v0.8.2
+  GOVULNCHECK: golang.org/x/vuln/cmd/govulncheck@v1.8.0
+  ZLINT: github.com/zmap/zlint/v3/cmd/zlint@v3.7.2
+
+jobs:
+  test:
+    name: Test (${{ matrix.os }})
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version: ${{ env.GO_VERSION }}
+      - name: gofmt
+        run: |
+          unformatted=$(gofmt -l .)
+          if [ -n "$unformatted" ]; then echo "$unformatted"; exit 1; fi
+      - name: go mod tidy
+        run: go mod tidy -diff
+      - run: go vet ./...
+      # Includes an OpenSSL interop test (verify with -crl_check_all, then revoke).
+      - run: go test -race -count=1 ./...
+
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version: ${{ env.GO_VERSION }}
+      - name: staticcheck
+        run: go run "$STATICCHECK" ./...
+      - name: govulncheck
+        run: go run "$GOVULNCHECK" ./...
+      - name: Lint issued certificates (zlint, RFC 5280 / 5480 / 5891)
+        # CA/Browser Forum lints are left out: they target public CAs
+        # (certificate policies, public TLDs, 200-day validity).
+        env:
+          CRTFORGE_HOME: ${{ runner.temp }}/crtforge
+        run: |
+          bin="$RUNNER_TEMP/crtforge-bin"
+          go build -o "$bin" .
+          for alg in rsa ecdsa; do
+            "$bin" --ca "$alg" init --key-type "$alg" --base-url http://pki.example.test > /dev/null
+            "$bin" --ca "$alg" issue web app.example.test '*.example.test' 192.0.2.10 --client > /dev/null
+          done
+          GOBIN="$RUNNER_TEMP" go install "$ZLINT"
+          status=0
+          while IFS= read -r cert; do
+            findings=$("$RUNNER_TEMP/zlint" -includeSources RFC5280,RFC5480,RFC5891 "$cert" |
+              jq -r 'to_entries[] | select(.value.result == "warn" or .value.result == "error" or .value.result == "fatal") | "\(.key)=\(.value.result)"')
+            name=${cert#"$CRTFORGE_HOME"/}
+            if [ -n "$findings" ]; then
+              echo "::error title=zlint::$name: $(echo $findings)"
+              status=1
+            else
+              echo "ok $name"
+            fi
+          done < <(find "$CRTFORGE_HOME/ca" -name cert.pem | sort)
+          exit "$status"
+
+  release:
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: [test, lint]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version: ${{ env.GO_VERSION }}
+      - name: Build
+        env:
+          VERSION: ${{ github.ref_name }}
+        # Asset names follow `uname -s`-`uname -m`, so the README's one-line
+        # install picks the right file (Linux on ARM reports aarch64).
+        run: |
+          mkdir dist
+          for target in linux/amd64/Linux-x86_64 linux/arm64/Linux-aarch64 darwin/amd64/Darwin-x86_64 darwin/arm64/Darwin-arm64; do
+            IFS=/ read -r goos goarch suffix <<< "$target"
+            CGO_ENABLED=0 GOOS="$goos" GOARCH="$goarch" \
+              go build -trimpath -ldflags "-s -w -X main.version=$VERSION" -o "dist/crtforge-$suffix" .
+          done
+          (cd dist && sha256sum crtforge-* > SHA256SUMS)
+          cat dist/SHA256SUMS
+      - name: Publish GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ github.ref_name }}
+        run: |
+          flags=()
+          if [[ "$VERSION" == *-* ]]; then flags+=(--prerelease); fi
+          gh release create "$VERSION" dist/* --repo "$GITHUB_REPOSITORY" \
+            --verify-tag --title "$VERSION" --generate-notes "${flags[@]}"

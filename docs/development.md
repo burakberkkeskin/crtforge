@@ -1,73 +1,52 @@
-# 🛠 Development Guide: crtforge
+# Development
 
-This guide is intended for developers who want to contribute to the `crtforge` codebase.
+## Prerequisites
 
-## 💻 Prerequisites
+- Go, the version in `go.mod` or newer (CI builds with the latest 1.27 patch).
+- `openssl` (optional): enables the interop test that checks chains and CRLs with `openssl verify -crl_check_all`. OpenSSL 3+ and LibreSSL both pass.
 
-Before you start developing, ensure you have the following installed:
-
-- **Go (Golang):** Version `1.21` or higher is recommended.
-- **OpenSSL:** Must be installed and available in your `PATH`.
-- **Git:** To manage the codebase.
-
-## 🏗 Building from Source
-
-You can build the `crtforge` binary locally with custom versioning information.
-
-Run the following command in the root directory of the project:
+## Build
 
 ```bash
-# Get current version and commit ID
-version=$(git describe --tags --abbrev=0)
-commitId=$(git --no-pager log -1 --oneline | awk '{print $1}')
-
-# Build the binary with injected version metadata
-go build -ldflags "-X crtforge/cmd.version=$version -X crtforge/cmd.commitId=$commitId" -o crtforge -v .
+go build -o crtforge .
+./crtforge --version     # dev+<commit> for local builds
 ```
 
-The `-ldflags` argument injects the current Git tag and commit SHA into the `cmd.version` and `cmd.commitId` variables, which is useful for `--version` flags.
+Releases set the version with `-ldflags "-X main.version=vX.Y.Z"`.
 
-## 🧪 Testing
-
-### Running Tests
-
-Currently, the project uses Go's built-in testing framework. Run all tests using:
+## Test
 
 ```bash
-go test ./...
+go test -race ./...
+go vet ./...
+gofmt -l .
+go run honnef.co/go/tools/cmd/staticcheck@v0.8.2 ./...
+go run golang.org/x/vuln/cmd/govulncheck@v1.8.0 ./...
 ```
 
-## 🎨 Code Standards
+CI (`.github/workflows/ci.yml`) runs these on Linux and macOS. It also issues RSA and ECDSA chains and lints them with zlint's RFC 5280 / 5480 / 5891 sources. The CA/Browser Forum sources are left out, because they assume a public CA (certificate policies, public TLDs, 200-day validity).
 
-- **Formatting:** Always run `go fmt ./...` before committing.
-- **Logging:** Use `github.com/sirupsen/logrus` for all logging. Avoid using `fmt.Println` for debugging/info messages.
-- **Error Handling:** Follow standard Go error handling patterns (check errors immediately and return/log them).
-- **Command Structure:** All CLI command logic is centralized in `cmd/`. Business logic resides in `cmd/services/`.
+To try commands without touching your real CAs, point `CRTFORGE_HOME` at a temporary directory.
 
-## 🚀 Contribution Workflow
+## Code layout
 
-To maintain a clean history and ensure issue tracking, please follow this workflow:
+See [architecture.md](architecture.md). Keep crypto in `internal/pki` (no filesystem), disk and state in `internal/ca`, flags and output in `internal/cli`. Return errors and let `cli.Execute` print them; nothing calls `os.Exit` or `log.Fatal` below `main`.
 
-### 1. Prepare the Issue
-- Before starting work, find the relevant issue on GitHub.
-- Comment on the issue stating that you are working on it (e.g., "In progress").
+## Contribution workflow
 
-### 2. Create a Dedicated Branch
-Always create a new branch for your work. Do not commit directly to `master`.
-- **For new features:** `feature/feature-name`
-- **For bug fixes:** `bugfix/issue-number-description`
-- **For critical production fixes:** `hotfix/description`
+1. Open or pick a GitHub issue.
+2. Branch from `master`: `feature/<name>`, `bugfix/<issue>-<desc>` or `hotfix/<desc>`.
+3. Run the checks above.
+4. Open a PR against `master` with `Closes #<id>`.
 
-### 3. Develop and Test
-- Implement your changes.
-- **Crucial:** Ensure you run `go test ./...` to verify your changes haven't broken existing functionality.
+## Release
 
-### 4. Submit a Pull Request (PR)
-When your work is ready for review:
-- Push your branch to GitHub.
-- Open a Pull Request (PR) against the `master` branch.
-- **Link the Issue:** In your PR description, include the text `Closes #ID` (where `ID` is the issue number). This automatically closes the issue when the PR is merged.
-- **Include Context:** Provide a clear description of what was changed and why.
+Push a semver tag; CI tests, builds and publishes the release:
 
----
-*Created for crtforge documentation.*
+```bash
+git checkout master && git pull
+git tag --sign v2.0.0 -m "v2.0.0"
+git push origin v2.0.0
+```
+
+The release job builds `crtforge-{Linux-x86_64,Linux-aarch64,Darwin-x86_64,Darwin-arm64}` (named after `uname -s`-`uname -m`, which the install one-liner uses) with `CGO_ENABLED=0 -trimpath`, writes `SHA256SUMS`, and creates the GitHub release with generated notes. Tags with a pre-release suffix (`v2.1.0-rc1`) are published as pre-releases.
