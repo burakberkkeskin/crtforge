@@ -69,7 +69,7 @@ http://pki.example.test {
 rsync -a ~/.local/share/crtforge/publish/ webhost:/srv/pki/
 ```
 
-Some clients check revocation: .NET with `X509RevocationMode.Online`, MailKit, Windows Schannel, and Java when revocation checking is enabled. These clients download the CRL and reject the chain when it is unreachable, not signed by the issuer, or past its next update. CRLs are valid for 365 days by default (`--crl-days`). Run `crtforge crl` and publish again before they expire; `crtforge list` warns 30 days ahead.
+Some clients check revocation: .NET with `X509RevocationMode.Online`, MailKit, Windows Schannel, and Java when revocation checking is enabled. These clients download the CRL and reject the chain when it is unreachable, not signed by the issuer, or past its next update. CRLs are valid for 365 days by default. Run `crtforge crl` and publish again before they expire; `crtforge list` warns 30 days ahead. The validity is set with `--crl-days` when the CA is created and cannot be changed later. If you never revoke, use `--crl-days 3650` and there is nothing to renew (see [docs/usage.md](docs/usage.md#a-ca-you-never-revoke-from)).
 
 Without `--base-url`, certificates carry no CDP or AIA. That is fine for clients that never check revocation (browsers, curl, Go), but strict clients will reject the chain.
 
@@ -93,7 +93,7 @@ Run `crtforge <command> --help` for every flag. See [docs/usage.md](docs/usage.m
 
 `$CRTFORGE_HOME`, else `$XDG_DATA_HOME/crtforge`, else `~/.local/share/crtforge`:
 
-```
+```text
 ca/<ca>/ca.json                          settings (base URL, key type, CRL validity)
 ca/<ca>/root/{cert.pem,privkey.pem,state.json}
 ca/<ca>/intermediates/<name>/{cert.pem,privkey.pem,state.json}
@@ -101,7 +101,7 @@ ca/<ca>/certs/<name>/...                 the files in the table above, plus meta
 publish/<ca>/{root,<intermediate>}.{crt,crl}
 ```
 
-Private keys are `0600` and directories `0700`. Keys are not encrypted, so treat the directory as a secret and back it up as one.
+Private keys are `0600` in `0700` directories; the publish tree is world-readable (`0755` / `0644`) so it can be copied to a web server as is. Keys are not encrypted, so treat the directory as a secret and back it up as one.
 
 ## Upgrading from v1
 

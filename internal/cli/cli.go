@@ -134,7 +134,7 @@ func (f *caFlags) register(cmd *cobra.Command, withRoot bool) {
 	}
 	cmd.Flags().StringVar(&f.intermediate, "intermediate", ca.DefaultIntermediate, "name of the first intermediate CA")
 	cmd.Flags().IntVar(&f.intermediateDays, "intermediate-days", ca.DefaultIntermediateDays, "intermediate CA validity in days")
-	cmd.Flags().IntVar(&f.crlDays, "crl-days", ca.DefaultCRLDays, "CRL validity in days; run 'crtforge crl' before it ends")
+	cmd.Flags().IntVar(&f.crlDays, "crl-days", ca.DefaultCRLDays, "CRL validity in days, fixed when the CA is created; run 'crtforge crl' before it ends (e.g. 3650 if you never revoke)")
 	f.constraints.register(cmd)
 }
 

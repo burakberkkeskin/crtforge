@@ -31,7 +31,7 @@ crtforge prints the trust commands and leaves running them to you:
 crtforge inspect
 ```
 
-```
+```text
   macOS          sudo security add-trusted-cert -d -r trustRoot -k /Library/Keychains/System.keychain '.../root/cert.pem'
   Debian/Ubuntu  sudo cp '.../root/cert.pem' /usr/local/share/ca-certificates/crtforge-lab.crt && sudo update-ca-certificates
   RHEL/Fedora    sudo cp '.../root/cert.pem' /etc/pki/ca-trust/source/anchors/crtforge-lab.crt && sudo update-ca-trust
@@ -68,6 +68,22 @@ rsync -a ~/.local/share/crtforge/publish/ webhost:/srv/pki/
 ```
 
 An expired CRL breaks TLS for every client that checks revocation, so schedule this if the CA lives long.
+
+## A CA you never revoke from
+
+A CRL is needed even when nothing is revoked: strict clients reject a chain without one, and they reject an expired empty CRL just as they reject an expired full one. If you never plan to revoke, make the CRL last as long as the intermediate, and there is nothing to renew:
+
+```bash
+crtforge init --base-url http://pki.example.test --crl-days 3650
+```
+
+`--crl-days` is stored in the CA when it is created (`init`, `import-v1`) and cannot be changed later, so choose it then. The trade-off is that clients may cache a CRL until its next update, so a revocation made later could go unnoticed for years. If you never revoke, that does not matter.
+
+What still needs care:
+
+- The base URL must keep serving the files. If the web server is down, revocation-checking clients fail the TLS handshake.
+- Leaf certificates expire independently (397 days by default, `--days` up to 825); renew them with `crtforge renew <name>`.
+- After `add-intermediate`, publish the directory again.
 
 ## Restricting what the CA can sign
 
