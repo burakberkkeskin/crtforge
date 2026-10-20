@@ -1,85 +1,119 @@
-# 📖 Usage Guide: crtforge
+# Usage
 
-This document provides detailed examples of how to use `crtforge` for various certificate generation scenarios.
-
-## 🚀 Basic Usage (The "Quick Start")
-
-To generate a full chain (Root $\rightarrow$ Intermediate $\rightarrow$ Leaf) with default settings:
+Walkthroughs for common setups. Every command takes `--ca <name>` (or `$CRTFORGE_CA`) and `--home <dir>` (or `$CRTFORGE_HOME`); the examples set the CA once:
 
 ```bash
-crtforge myApp api.myapp.com
+export CRTFORGE_CA=lab
 ```
 
-This creates a folder at `~/.config/crtforge/default/myApp/` containing:
-- `fullchain.crt`
-- `myApp.key`
-- `myApp.crt`
-- `myApp.csr`
-
----
-
-## 🛠 Advanced Scenarios
-
-### 1. Custom Names for CA Hierarchy
-If you want to separate your production CA from your testing CA:
+## A lab CA with revocation
 
 ```bash
-# Create a custom Root CA named 'CorporateRoot'
-crtforge --root-ca CorporateRoot myApp api.myapp.com
+crtforge init --base-url http://pki.example.test
+crtforge issue gitlab gitlab.example.test registry.example.test
+crtforge issue nexus nexus.example.test
+rsync -a ~/.local/share/crtforge/publish/ webhost:/srv/pki/
 ```
 
-### 2. Custom Intermediate CA
-To create a specific intermediate CA for a specific department (e.g., 'DevOps'):
+Check that the CRL answers before pointing clients at the certificates:
 
 ```bash
-crtforge --root-ca CorporateRoot --intermediate-ca DevOps myApp api.myapp.com
+curl -fsS http://pki.example.test/lab/int1.crl | openssl crl -inform DER -noout -issuer -nextupdate
 ```
 
-### 3. Using the `--renew` Flag
-If you already have a valid Root and Intermediate CA, and you only want to rotate the **leaf/application** certificate (e.g., because the old one expired):
+Configure the server with `certs/<name>/fullchain.pem` and `certs/<name>/privkey.pem`, and give clients `ca.pem`.
+
+## Trusting the root
+
+crtforge prints the trust commands and leaves running them to you:
 
 ```bash
-# This will ONLY generate a new app certificate and key.
-# It will NOT touch your Root or Intermediate CA files.
-crtforge --renew myApp api.myapp.com
+crtforge inspect
 ```
 
-### 4. Generating PFX (PKCS#12) Files
-If you need a `.pfx` file for Windows servers or certain Java applications:
+```
+  macOS          sudo security add-trusted-cert -d -r trustRoot -k /Library/Keychains/System.keychain '.../root/cert.pem'
+  Debian/Ubuntu  sudo cp '.../root/cert.pem' /usr/local/share/ca-certificates/crtforge-lab.crt && sudo update-ca-certificates
+  RHEL/Fedora    sudo cp '.../root/cert.pem' /etc/pki/ca-trust/source/anchors/crtforge-lab.crt && sudo update-ca-trust
+  Java           keytool -importcert -noprompt -alias crtforge-lab -file '.../root/cert.pem' -keystore <truststore> -storepass <password>
+```
+
+Compare the SHA-256 fingerprint `inspect` shows with the one on the client before trusting a copied file.
+
+## Wildcards and IP addresses
 
 ```bash
-crtforge myApp api.myapp.com --pfx
+crtforge issue web "*.apps.example.test" apps.example.test 192.0.2.10
 ```
-*Note: The default password for the PFX file is `changeit`.*
 
-### 5. Trusting the Root CA Automatically
-To automatically add your new Root CA to your system's trust store:
+A wildcard covers one label (`a.apps.example.test`, not `a.b.apps.example.test`) and must be followed by at least two labels. Quote it so the shell does not expand it.
+
+## Testing a revoked certificate
 
 ```bash
-crtforge myApp api.myapp.com --trust
+crtforge issue revoked-demo demo.example.test
+crtforge revoke revoked-demo --reason keyCompromise
+rsync -a ~/.local/share/crtforge/publish/ webhost:/srv/pki/
 ```
 
----
+Clients that check revocation now reject `demo.example.test`. `crtforge renew revoked-demo` issues a fresh certificate with the same names.
 
-## 📂 Directory Structure Explained
+## Keeping CRLs fresh
 
-By default, `crtforge` stores everything in `$HOME/.config/crtforge`.
+CRLs are valid for `--crl-days` (default 365). Before the next update shown by `crtforge list`, re-sign them and publish them again:
 
-```text
-~/.config/crtforge/
-├── default/
-│   ├── rootCA/
-│   │   ├── rootCA.crt      # The Root Certificate
-│   │   ├── rootCA.key      # The Root Private Key
-│   │   ├── rootCA.cnf      # Root CA Configuration
-│   │   ├── index.txt       # CA database index
-│   │   └── serial        # CA serial number file
-│   └── myApp/              # Your application files
-│       ├── fullchain.crt  # The complete chain
-│       ├── myApp.crt      # The leaf certificate
-│       ├── myApp.key       # The leaf private key
-│       └── ...
+```bash
+crtforge crl
+rsync -a ~/.local/share/crtforge/publish/ webhost:/srv/pki/
 ```
 
----
-*Created for crtforge documentation.*
+An expired CRL breaks TLS for every client that checks revocation, so schedule this if the CA lives long.
+
+## Restricting what the CA can sign
+
+Name constraints on the intermediate keep a trusted lab root from vouching for real domains:
+
+```bash
+crtforge init --base-url http://pki.example.test --permit-dns example.test --permit-ip 10.0.0.0/8
+crtforge issue web www.example.com   # refused: outside the constraints
+```
+
+`add-intermediate` takes the same flags, so one root can have a constrained and an unconstrained intermediate:
+
+```bash
+crtforge add-intermediate internal --permit-dns corp.test
+crtforge issue api api.corp.test --intermediate internal
+```
+
+## PKCS #12 for Java and Windows
+
+```bash
+crtforge issue tomcat tomcat.example.test --pfx --pfx-password changeit
+```
+
+The default uses AES-256 and PBKDF2. Java 8 before 8u301 and Windows Server 2016 cannot read that; add `--pfx-legacy` for 3DES/SHA-1.
+
+## Client certificates (mTLS)
+
+```bash
+crtforge issue client1 client1.example.test --client
+```
+
+The certificate gets both `serverAuth` and `clientAuth`.
+
+## ECDSA
+
+```bash
+crtforge init --ca lab-ec --key-type ecdsa --base-url http://pki.example.test
+```
+
+CA keys use P-384 and leaf keys P-256. The key type is fixed per CA.
+
+## Keeping a v1 root
+
+```bash
+crtforge import-v1 --ca mylab --base-url http://pki.example.test ~/.config/crtforge/mylab
+crtforge issue --ca mylab web app.example.test
+```
+
+The v1 root certificate and key are copied unchanged; `~/.config/crtforge` is only read. Leaf certificates from v1 stay valid but have no CRL Distribution Point; re-issue them with v2 where a client checks revocation.
