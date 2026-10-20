@@ -487,13 +487,27 @@ func (c *CA) writeIssuer(name, dir string, cert *x509.Certificate, key crypto.Si
 	if err := iss.saveState(); err != nil {
 		return nil, err
 	}
-	if err := os.MkdirAll(c.PublishDir, dirPerm); err != nil {
+	if err := c.ensurePublishDir(); err != nil {
 		return nil, err
 	}
 	if err := writeFileAtomic(filepath.Join(c.PublishDir, name+".crt"), cert.Raw, publicPerm); err != nil {
 		return nil, err
 	}
 	return iss, nil
+}
+
+// ensurePublishDir creates publish/<ca> readable by everyone, whatever the
+// umask, so copying the tree to a web server keeps it readable there.
+func (c *CA) ensurePublishDir() error {
+	for _, dir := range []string{filepath.Dir(c.PublishDir), c.PublishDir} {
+		if err := os.MkdirAll(dir, publicDirPerm); err != nil {
+			return err
+		}
+		if err := os.Chmod(dir, publicDirPerm); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 // revocation returns the CRL and AIA URLs for certificates issued by the
@@ -540,7 +554,7 @@ func (c *CA) writeCRL(iss *Issuer, key crypto.Signer) error {
 	if err != nil {
 		return err
 	}
-	if err := os.MkdirAll(c.PublishDir, dirPerm); err != nil {
+	if err := c.ensurePublishDir(); err != nil {
 		return err
 	}
 	if err := writeFileAtomic(filepath.Join(c.PublishDir, iss.Name+".crl"), der, publicPerm); err != nil {

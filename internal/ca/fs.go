@@ -11,9 +11,10 @@ import (
 )
 
 const (
-	dirPerm     fs.FileMode = 0o700
-	privatePerm fs.FileMode = 0o600
-	publicPerm  fs.FileMode = 0o644
+	dirPerm       fs.FileMode = 0o700
+	publicDirPerm fs.FileMode = 0o755 // publish tree: served as is by a web server
+	privatePerm   fs.FileMode = 0o600
+	publicPerm    fs.FileMode = 0o644
 )
 
 var namePattern = regexp.MustCompile(`^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$`)

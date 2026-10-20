@@ -90,8 +90,16 @@ func TestInitLayout(t *testing.T) {
 		t.Errorf("CA dir mode %v", info.Mode().Perm())
 	}
 	for _, f := range []string{"root.crt", "root.crl", "int1.crt", "int1.crl"} {
-		if _, err := os.Stat(filepath.Join(c.PublishDir, f)); err != nil {
+		info, err := os.Stat(filepath.Join(c.PublishDir, f))
+		if err != nil {
 			t.Errorf("publish file missing: %v", err)
+		} else if info.Mode().Perm() != publicPerm {
+			t.Errorf("%s mode %v, want %v", f, info.Mode().Perm(), publicPerm)
+		}
+	}
+	for _, d := range []string{c.PublishDir, filepath.Dir(c.PublishDir)} {
+		if info, _ := os.Stat(d); info.Mode().Perm() != publicDirPerm {
+			t.Errorf("%s mode %v, want %v (a web server must read it)", d, info.Mode().Perm(), publicDirPerm)
 		}
 	}
 	inter := c.Intermediates["int1"]
